@@ -54,6 +54,41 @@
     body.hovering #cursor { width: 6px; height: 6px; }
     body.hovering #cursor-ring { width: 52px; height: 52px; border-color: rgba(124,140,255,0.2); }
 
+    /* ── Snake hook ── */
+    #snake-hook {
+      position: fixed;
+      top: 0;
+      left: 3rem;
+      z-index: 105;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: none;
+      user-select: none;
+    }
+    .snake-rope {
+      width: 2px;
+      height: 2.2rem;
+      background: repeating-linear-gradient(
+        to bottom,
+        #5a3e1a 0px, #5a3e1a 4px,
+        #8b6030 4px, #8b6030 8px
+      );
+      border-radius: 0 0 2px 2px;
+    }
+    .snake-emoji {
+      font-size: 1.4rem;
+      display: block;
+      transform: scaleX(-1);
+      transition: transform 0.25s ease, filter 0.25s ease;
+      filter: drop-shadow(0 2px 4px rgba(40,200,64,0.3));
+      line-height: 1;
+    }
+    #snake-hook:hover .snake-emoji {
+      transform: scaleX(-1) scale(1.25) rotate(-8deg);
+      filter: drop-shadow(0 2px 10px rgba(40,200,64,0.7));
+    }
+
     /* ── Main layout ── */
     main {
       max-width: 520px;
@@ -111,6 +146,25 @@
     .arrow { color: var(--muted); font-size: 1rem; transition: color 0.15s; }
     a.card:hover .arrow { color: var(--accent); }
 
+    /* ── GitHub row ── */
+    .gh-row {
+      margin-top: 1rem;
+      opacity: 0;
+      animation: fadeUp 0.7s ease 0.55s forwards;
+    }
+    .gh-row a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+      cursor: none;
+    }
+    .gh-row a:hover { color: var(--text); }
+    .gh-row svg { flex-shrink: 0; }
+
     /* ── Footer hint ── */
     .hint {
       margin-top: 3rem;
@@ -122,7 +176,6 @@
       animation: fadeIn 1s ease 1.2s forwards;
       text-align: center;
     }
-    .hint span { color: #333; }
 
     /* ── Scramble chars ── */
     .scramble-char { color: var(--accent); opacity: 0.5; }
@@ -219,7 +272,6 @@
       transition: opacity 0.25s ease;
     }
     .game-overlay.open { opacity: 1; pointer-events: all; }
-
     .game-modal {
       background: #080808;
       border: 1px solid #1e1e1e;
@@ -269,6 +321,11 @@
   <div id="cursor"></div>
   <div id="cursor-ring"></div>
 
+  <div id="snake-hook" title="Play snake">
+    <div class="snake-rope"></div>
+    <span class="snake-emoji">🐍</span>
+  </div>
+
   <main>
     <h1>Hi, I'm <span class="accent" id="heroName">Ethan.</span></h1>
     <p class="sub">I build things and think about AI. Here's where I keep them.</p>
@@ -284,13 +341,27 @@
       <a class="card" href="atlas/">
         <div class="card-text">
           <strong>Alignment Atlas</strong>
-          <span>A map of the AI safety landscape</span>
+          <span>Settle the sandwich debate, once and for all</span>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+      <a class="card" href="https://viewpol.ethan-codes.com" target="_blank" rel="noopener">
+        <div class="card-text">
+          <strong>ViewPol</strong>
+          <span>viewpol.ethan-codes.com</span>
         </div>
         <span class="arrow">→</span>
       </a>
     </nav>
 
-    <p class="hint">press <span>[G]</span> to play snake &nbsp;·&nbsp; try the konami code</p>
+    <div class="gh-row">
+      <a href="https://github.com/ethandacat" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        github.com/ethandacat
+      </a>
+    </div>
+
+    <p class="hint">try the konami code</p>
   </main>
 
   <!-- Snake game -->
@@ -349,7 +420,7 @@
       ring.style.top  = ringY + 'px';
       requestAnimationFrame(animateRing);
     })();
-    document.querySelectorAll('a, button').forEach(el => {
+    document.querySelectorAll('a, button, #snake-hook').forEach(el => {
       el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
       el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
     });
@@ -485,9 +556,7 @@
       setTimeout(() => konamiToast.classList.remove('show'), 3000);
     });
 
-    // ══════════════════════════════════════════
     // ── Snake game ──
-    // ══════════════════════════════════════════
     const overlay  = document.getElementById('gameOverlay');
     const canvas   = document.getElementById('snakeCanvas');
     const ctx      = canvas.getContext('2d');
@@ -610,6 +679,7 @@
     function openGame()  { overlay.classList.add('open');    initGame(); }
     function closeGame() { overlay.classList.remove('open'); running=false; cancelAnimationFrame(snakeRAF); }
 
+    document.getElementById('snake-hook').addEventListener('click', openGame);
     document.getElementById('dotClose').addEventListener('click', closeGame);
     document.getElementById('gameCloseBtn').addEventListener('click', closeGame);
     overlay.addEventListener('click', e => { if(e.target===overlay) closeGame(); });
@@ -619,7 +689,6 @@
       w:{x:0,y:-1},s:{x:0,y:1},a:{x:-1,y:0},d:{x:1,y:0},
     };
     document.addEventListener('keydown', e => {
-      if((e.key==='g'||e.key==='G')&&!overlay.classList.contains('open')){openGame();return;}
       if(e.key==='Escape'){closeGame();return;}
       if(!overlay.classList.contains('open')) return;
       const d=DIRS[e.key];
