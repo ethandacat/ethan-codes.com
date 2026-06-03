@@ -612,12 +612,6 @@
       color: var(--text);
     }
 
-    /* ── Scramble char ── */
-    .scramble-char {
-      color: var(--accent);
-      opacity: 0.5;
-    }
-
     /* ── Parallax hero ── */
     .hero-inner {
       will-change: transform;
@@ -651,37 +645,39 @@
       50% { opacity: 1; }
     }
 
-    /* ── Fun section ── */
-    #fun { border-top: 1px solid var(--border); }
-
-    .fun-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-
-    .fun-card {
-      background: var(--bg-subtle);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      cursor: none;
-      transition: border-color 0.2s ease;
+    /* ── Snake hook ── */
+    #snake-hook {
+      position: fixed;
+      top: 0;
+      left: 3rem;
+      z-index: 105;
       display: flex;
       flex-direction: column;
-      gap: 0.6rem;
+      align-items: center;
+      cursor: none;
+      user-select: none;
     }
-
-    .fun-card:hover { border-color: var(--accent); }
-    .fun-card-icon { font-size: 2.2rem; }
-    .fun-card-title { font-size: 1rem; font-weight: 600; }
-    .fun-card-desc { font-size: 0.83rem; color: var(--muted); line-height: 1.6; flex: 1; }
-    .fun-card-hint {
-      font-size: 0.72rem; color: var(--accent);
-      background: var(--accent-dim);
-      border: 1px solid rgba(124,140,255,0.2);
-      border-radius: 4px; padding: 0.2rem 0.6rem;
-      width: fit-content; font-family: monospace; letter-spacing: 0.04em;
+    .snake-rope {
+      width: 2px;
+      height: 2.2rem;
+      background: repeating-linear-gradient(
+        to bottom,
+        #5a3e1a 0px, #5a3e1a 4px,
+        #8b6030 4px, #8b6030 8px
+      );
+      border-radius: 0 0 2px 2px;
+    }
+    .snake-emoji {
+      font-size: 1.4rem;
+      display: block;
+      transform: scaleX(-1);
+      transition: transform 0.25s ease, filter 0.25s ease;
+      filter: drop-shadow(0 2px 4px rgba(40,200,64,0.3));
+      line-height: 1;
+    }
+    #snake-hook:hover .snake-emoji {
+      transform: scaleX(-1) scale(1.25) rotate(-8deg);
+      filter: drop-shadow(0 2px 10px rgba(40,200,64,0.7));
     }
 
     /* ── Game modal ── */
@@ -756,97 +752,6 @@
       font-family: monospace; font-size: 0.65rem; color: #2a2a2a;
       text-align: center; line-height: 2;
     }
-
-    /* ── Click sparks ── */
-    .spark {
-      position: fixed; width: 7px; height: 7px;
-      border-radius: 50%; pointer-events: none; z-index: 9990;
-      animation: spark-fly 0.5s ease forwards;
-    }
-    @keyframes spark-fly {
-      0%   { transform: translate(-50%,-50%) scale(1.2); opacity: 1; }
-      100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0); opacity: 0; }
-    }
-
-    /* ── Scroll Lock ── */
-    .scroll-lock {
-      position: fixed; inset: 0; z-index: 9998;
-      background: rgba(0,0,0,0.92);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 1.5rem;
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-    .scroll-lock.active { opacity: 1; pointer-events: all; }
-
-    .scroll-lock-emoji {
-      font-size: min(35vw, 35vh);
-      line-height: 1;
-      transform: scale(0);
-      animation: none;
-    }
-    .scroll-lock.active .scroll-lock-emoji {
-      animation: lockPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
-    }
-    @keyframes lockPop {
-      from { transform: scale(0) rotate(-15deg); }
-      to   { transform: scale(1) rotate(0deg); }
-    }
-    .scroll-lock-msg {
-      font-family: monospace; font-size: clamp(1.2rem, 3vw, 2rem);
-      font-weight: 700; color: #888; letter-spacing: 0.04em; text-align: center;
-      line-height: 1.4;
-    }
-    .scroll-lock-countdown { color: #444; font-size: 1rem; margin-top: 0.5rem; font-weight: 400; }
-
-    /* ── Speed Police ── */
-    .speed-toast {
-      position: fixed;
-      bottom: 2rem; right: 2rem;
-      background: #cc0000;
-      color: #fff;
-      padding: 0.9rem 1.25rem;
-      border-radius: 14px;
-      z-index: 9992;
-      max-width: 260px;
-      pointer-events: none;
-      transform: translateY(8rem);
-      opacity: 0;
-      transition: transform 0.45s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s ease;
-      box-shadow: 0 6px 28px rgba(200,0,0,0.45);
-    }
-    .speed-toast.show { transform: translateY(0); opacity: 1; }
-    .speed-toast-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 0.2rem; }
-    .speed-toast-sub   { font-size: 0.75rem; opacity: 0.88; line-height: 1.5; }
-
-    @keyframes siren {
-      0%,100% { box-shadow: 0 6px 28px rgba(200,0,0,0.5); }
-      50%      { box-shadow: 0 6px 28px rgba(0,80,255,0.5); }
-    }
-    .speed-toast.show { animation: siren 0.55s ease infinite; }
-
-    /* ── Konami ── */
-    .konami-flash {
-      position: fixed; inset: 0; z-index: 9989; pointer-events: none;
-      animation: kflash 0.7s ease forwards;
-    }
-    @keyframes kflash {
-      0%   { background: rgba(124,140,255,0.18); }
-      60%  { background: rgba(124,140,255,0.06); }
-      100% { background: transparent; }
-    }
-
-    .konami-toast {
-      position: fixed; bottom: 2rem; left: 50%;
-      transform: translateX(-50%) translateY(4rem);
-      background: var(--accent); color: #0c0c0c;
-      font-size: 0.85rem; font-weight: 600;
-      padding: 0.7rem 1.4rem; border-radius: 100px;
-      z-index: 9991; letter-spacing: 0.02em; opacity: 0;
-      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s ease;
-      pointer-events: none; white-space: nowrap;
-    }
-    .konami-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
     /* ── FTC Stats Panel ── */
     #ftcBackdrop { z-index: 198; }
@@ -1043,6 +948,12 @@
   <div id="cursor"></div>
   <div id="cursor-ring"></div>
 
+  <!-- Snake hook -->
+  <div id="snake-hook" title="Play snake">
+    <div class="snake-rope"></div>
+    <span class="snake-emoji">🐍</span>
+  </div>
+
   <!-- Nav -->
   <nav id="nav">
     <a href="#hero" class="nav-logo">ethan.</a>
@@ -1051,7 +962,6 @@
       <li><a href="#skills">skills</a></li>
       <li><a href="#ftc">robotics</a></li>
       <li><a href="#projects">projects</a></li>
-      <li><a href="#fun">fun</a></li>
       <li><a href="#contact">contact</a></li>
     </ul>
   </nav>
@@ -1216,28 +1126,6 @@
     </div>
   </section>
 
-  <!-- Fun -->
-  <section id="fun">
-    <div class="container">
-      <p class="section-label reveal">Fun</p>
-      <h2 class="skills-heading reveal">Just for <i id="justforfunfun">fun</i></h2>
-      <div class="fun-grid reveal">
-        <div class="fun-card" id="open-snake">
-          <div class="fun-card-icon">🐍</div>
-          <div class="fun-card-title">Snake</div>
-          <div class="fun-card-desc">Classic snake game with a retro terminal twist. How long can you last?</div>
-          <span class="fun-card-hint">Press [G] or click to play</span>
-        </div>
-        <div class="fun-card">
-          <div class="fun-card-icon">🕹️</div>
-          <div class="fun-card-title">Easter Egg</div>
-          <div class="fun-card-desc">There's a secret cheat code hidden on this page. Classic gaming history might give you a hint...</div>
-          <span class="fun-card-hint">↑ ↑ ↓ ↓ ← → ← → B A</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- Game Modal -->
   <div class="game-overlay" id="gameOverlay">
     <div class="game-modal">
@@ -1363,24 +1251,6 @@
     </div>
   </div>
 
-  <!-- Scroll Lock -->
-  <div class="scroll-lock" id="scrollLock">
-    <div class="scroll-lock-emoji">🔒</div>
-    <div class="scroll-lock-msg">
-      you have been detained by the speed police<br>
-      <span class="scroll-lock-countdown" id="lockCountdown">releasing in 5 seconds...</span>
-    </div>
-  </div>
-
-  <!-- Speed Police toast -->
-  <div class="speed-toast" id="speedToast">
-    <div class="speed-toast-title">🚨 SPEED POLICE 🚔</div>
-    <div class="speed-toast-sub" id="speedToastMsg">You've been caught scrolling too fast. License and registration, please.</div>
-  </div>
-
-  <!-- Konami toast -->
-  <div class="konami-toast" id="konamiToast">🎉 Cheat code activated!</div>
-
   <!-- Contact -->
   <section id="contact">
     <div class="container">
@@ -1423,7 +1293,7 @@
       requestAnimationFrame(animateRing);
     })();
 
-    document.querySelectorAll('a, button, .skill-card, .fun-card').forEach(el => {
+    document.querySelectorAll('a, button, .skill-card').forEach(el => {
       el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
       el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
     });
@@ -1475,50 +1345,6 @@
     }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
     document.querySelectorAll('.reveal').forEach(el => revObs.observe(el));
 
-    // ── Text scramble ──
-    class TextScramble {
-      constructor(el) {
-        this.el = el;
-        this.chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
-        this.update = this.update.bind(this);
-      }
-      run(text) {
-        this.queue = Array.from(text, (ch, i) => ({
-          to: ch, char: '',
-          start: Math.floor(Math.random() * 6),
-          end: Math.floor(Math.random() * 10) + 10 + i * 2,
-        }));
-        this.frame = 0;
-        cancelAnimationFrame(this.raf);
-        this.update();
-      }
-      update() {
-        let out = '', done = 0;
-        for (const q of this.queue) {
-          if (this.frame >= q.end) { done++; out += q.to; }
-          else if (this.frame >= q.start) {
-            if (!q.char || Math.random() < 0.3)
-              q.char = this.chars[Math.floor(Math.random() * this.chars.length)];
-            out += `<span class="scramble-char">${q.char}</span>`;
-          } else { out += q.to === ' ' ? ' ' : '&nbsp;'; }
-        }
-        this.el.innerHTML = out;
-        if (done < this.queue.length) { this.frame++; this.raf = requestAnimationFrame(this.update); }
-      }
-    }
-
-    const heroAccent = document.querySelector('.hero-name .accent');
-    if (heroAccent) setTimeout(() => new TextScramble(heroAccent).run('Ethan.'), 500);
-
-    document.querySelectorAll('.section-label').forEach(label => {
-      const text = label.textContent.trim();
-      let done = false;
-      const o = new IntersectionObserver(([e]) => {
-        if (e.isIntersecting && !done) { done = true; new TextScramble(label).run(text); o.disconnect(); }
-      }, { threshold: 0.8 });
-      o.observe(label);
-    });
-
     // ── 3D tilt + spotlight: skill cards ──
     document.querySelectorAll('.skill-card').forEach(card => {
       card.addEventListener('mousemove', e => {
@@ -1567,19 +1393,6 @@
         item.style.background = `radial-gradient(circle at ${e.clientX - r.left}px ${e.clientY - r.top}px, rgba(124,140,255,0.1) 0%, var(--bg-subtle) 70%)`;
       });
       item.addEventListener('mouseleave', () => { item.style.background = ''; });
-    });
-
-    // ── Spotlight: fun cards ──
-    document.querySelectorAll('.fun-card').forEach(card => {
-      card.addEventListener('mousemove', e => {
-        const r = card.getBoundingClientRect();
-        const x = e.clientX - r.left, y = e.clientY - r.top;
-        const rx = ((y - r.height/2) / (r.height/2)) * -7;
-        const ry = ((x - r.width /2) / (r.width /2)) *  7;
-        card.style.transform  = `perspective(700px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.02)`;
-        card.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(124,140,255,0.14) 0%, var(--bg-subtle) 72%)`;
-      });
-      card.addEventListener('mouseleave', () => { card.style.transform = ''; card.style.background = ''; });
     });
 
     // ══════════════════════════════════════════
@@ -1789,7 +1602,7 @@
     function openGame()  { overlay.classList.add('open');    initGame(); }
     function closeGame() { overlay.classList.remove('open'); running=false; cancelAnimationFrame(snakeRAF); }
 
-    document.getElementById('open-snake').addEventListener('click', openGame);
+    document.getElementById('snake-hook').addEventListener('click', openGame);
     document.getElementById('dotClose').addEventListener('click', closeGame);
     document.getElementById('gameCloseBtn').addEventListener('click', closeGame);
     overlay.addEventListener('click', e => { if (e.target===overlay) closeGame(); });
@@ -1800,7 +1613,6 @@
     };
 
     document.addEventListener('keydown', e => {
-      if ((e.key==='g'||e.key==='G') && !overlay.classList.contains('open')) { openGame(); return; }
       if (e.key==='Escape') { closeGame(); return; }
       if (!overlay.classList.contains('open')) return;
       const d = DIRS[e.key];
@@ -1982,122 +1794,9 @@
       card.addEventListener('mouseleave', () => { card.style.background = ''; });
     });
 
-    // ══════════════════════════════════════════
-    // ── Click sparks ──
-    // ══════════════════════════════════════════
-    const sparkColors = ['#7c8cff','#a0abff','#ff5f57','#28c840','#ffbd2e','#ff79c6'];
-    document.addEventListener('click', e => {
-      if (e.target.closest('.game-overlay')) return;
-      for (let i=0; i<9; i++) {
-        const el = document.createElement('div');
-        el.className = 'spark';
-        const angle = (Math.PI*2*i)/9 + Math.random()*0.6;
-        const dist  = 28 + Math.random()*32;
-        el.style.cssText = `left:${e.clientX}px;top:${e.clientY}px;background:${sparkColors[i%sparkColors.length]};--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px`;
-        document.body.appendChild(el);
-        el.addEventListener('animationend', () => el.remove());
-      }
-    });
-
-    // ── Speed Police ──
-    const speedToast   = document.getElementById('speedToast');
-    const speedToastMsg = document.getElementById('speedToastMsg');
-    const speedLines = [
-      "License and registration, please.",
-      "Sir, do you know how fast you were scrolling?",
-      "That's a 20px/ms zone. You were doing {{speed}}px/ms.",
-      "This is your third offense this session.",
-      "Please step away from the scroll wheel.",
-    ];
-    const scrollLock    = document.getElementById('scrollLock');
-    const lockCountdown = document.getElementById('lockCountdown');
-    let speedCooldown = false, speedMsgIdx = 0, speedResetTimer = null;
-    let scrollAcc = 0, scrollWinStart = Date.now(), scrollLastY = window.scrollY;
-
-    function showScrollLock() {
-      scrollLock.classList.add('active');
-      document.body.style.overflow = 'hidden';
-      let secs = 5;
-      lockCountdown.textContent = `releasing in ${secs} seconds...`;
-      const cd = setInterval(() => {
-        secs--;
-        lockCountdown.textContent = secs > 0 ? `releasing in ${secs} second${secs !== 1 ? 's' : ''}...` : 'released.';
-        if (secs <= 0) clearInterval(cd);
-      }, 1000);
-      setTimeout(() => {
-        scrollLock.classList.remove('active');
-        document.body.style.overflow = '';
-      }, 5000);
-    }
-
-    window.addEventListener('scroll', () => {
-      const now = Date.now();
-      scrollAcc += Math.abs(window.scrollY - scrollLastY);
-      scrollLastY = window.scrollY;
-
-      const elapsed = now - scrollWinStart;
-      if (elapsed >= 100) {
-        const perMs = (scrollAcc * (100 / elapsed)) / 100;
-        scrollAcc = 0;
-        scrollWinStart = now;
-
-        if (perMs > 20 && !speedCooldown) {
-          speedCooldown = true;
-          const msgIdx = speedMsgIdx % speedLines.length;
-          const line = speedLines[msgIdx].replace('{{speed}}', perMs.toFixed(1));
-          speedMsgIdx++;
-          speedToastMsg.textContent = line;
-          speedToast.classList.add('show');
-
-          // last message → lock the screen
-          if (msgIdx === speedLines.length - 1) showScrollLock();
-
-          // reset message cycle after 10s of no offenses
-          clearTimeout(speedResetTimer);
-          speedResetTimer = setTimeout(() => { speedMsgIdx = 0; }, 10000);
-
-          setTimeout(() => speedToast.classList.remove('show'), 3500);
-          setTimeout(() => speedCooldown = false, 5000);
-        }
-      }
-    }, { passive: true });
-
-    // ══════════════════════════════════════════
-    // ── Konami code ──
-    // ══════════════════════════════════════════
-    const KONAMI=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
-    const fun = document.getElementById("justforfunfun");
-    let ki=0;
-    const toast = document.getElementById('konamiToast');
-
-    document.addEventListener('keydown', e => {
-      ki = e.key===KONAMI[ki] ? ki+1 : (e.key===KONAMI[0] ? 1 : 0);
-      if (ki < KONAMI.length) return;
-      ki = 0;
-      // screen flash
-      const flash = document.createElement('div');
-      flash.className = 'konami-flash';
-      document.body.appendChild(flash);
-      flash.addEventListener('animationend', () => flash.remove());
-      // scramble hero name
-      if (fun) {
-        new TextScramble(fun).run('CHEAT!!');
-        setTimeout(() => new TextScramble(fun).run('fun'), 2200);
-      }
-      // burst of sparks from center
-      for (let i=0; i<24; i++) {
-        const el = document.createElement('div');
-        el.className = 'spark';
-        const angle = (Math.PI*2*i)/24;
-        const dist  = 60 + Math.random()*80;
-        el.style.cssText = `left:50vw;top:50vh;background:${sparkColors[i%sparkColors.length]};--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px;width:9px;height:9px`;
-        document.body.appendChild(el);
-        el.addEventListener('animationend', () => el.remove());
-      }
-      // toast
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
-    });
+    // Add snake hook to hovering cursor set
+    document.getElementById('snake-hook').addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+    document.getElementById('snake-hook').addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
   </script>
 </body>
 </html>
