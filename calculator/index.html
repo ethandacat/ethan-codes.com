@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #111;
+      color: #eee;
+      font-family: system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #skin-bar {
+      display: flex;
+      gap: 6px;
+      padding: 10px 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      background: #1a1a1a;
+      width: 100%;
+      border-bottom: 1px solid #2a2a2a;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .skin-btn {
+      padding: 5px 13px;
+      border-radius: 20px;
+      border: 1px solid #3a3a3a;
+      background: transparent;
+      color: #888;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .skin-btn:hover { border-color: #666; color: #ccc; }
+    .skin-btn.active { background: #1e4d1e; border-color: #3a7a3a; color: #6ddb6d; }
+
+    #debug-btn {
+      margin-left: auto;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid #3a3a3a;
+      background: transparent;
+      color: #555;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    #debug-btn.on { color: #f66; border-color: #f66; }
+
+    #calc-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    /* Image-based skins */
+    #img-calc { display: block; }
+
+    #calc-wrap {
+      position: relative;
+      display: inline-block;
+      user-select: none;
+    }
+
+    #calc-img {
+      display: block;
+      max-height: 82vh;
+      max-width: 88vw;
+      width: auto;
+      height: auto;
+    }
+
+    #screen-canvas {
+      position: absolute;
+      pointer-events: none;
+    }
+
+    #btn-layer { position: absolute; inset: 0; }
+
+    .calc-btn {
+      position: absolute;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      border-radius: 3px;
+    }
+    .calc-btn:active { background: rgba(255,255,255,0.18); }
+
+    /* Debug: show hit areas */
+    body.debug .calc-btn { outline: 1px solid rgba(255, 60, 60, 0.55); }
+    body.debug .calc-btn::after {
+      content: attr(title);
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      color: rgba(255,100,100,0.8);
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    /* Apple Calculator */
+    #apple-calc {
+      display: none;
+      width: 320px;
+      background: #1c1c1e;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    }
+
+    #apple-display {
+      padding: 20px 22px 8px;
+      min-height: 130px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    #apple-expr {
+      font-size: 15px;
+      color: #888;
+      min-height: 20px;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #apple-result {
+      font-size: 56px;
+      font-weight: 300;
+      color: #fff;
+      line-height: 1;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #apple-keys {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: #000;
+    }
+
+    .apple-key {
+      aspect-ratio: 1;
+      border: none;
+      font-size: 26px;
+      font-weight: 300;
+      cursor: pointer;
+      transition: filter 0.08s;
+      color: #fff;
+    }
+    .apple-key:active { filter: brightness(1.5); }
+    .apple-key.wide { grid-column: span 2; aspect-ratio: unset; padding: 0 0 0 26px; text-align: left; height: 80px; }
+    .ak-grey  { background: #a5a5a5; color: #000; }
+    .ak-dark  { background: #333335; }
+    .ak-orange { background: #ff9f0a; }
+  </style>
+</head>
+<body>
+
+<div id="skin-bar">
+  <button class="skin-btn active" data-skin="ti85">TI-85</button>
+  <button class="skin-btn" data-skin="ti83p">TI-83 Plus</button>
+  <button class="skin-btn" data-skin="casio9750">Casio fx-9750GIII</button>
+  <button class="skin-btn" data-skin="casioCG50">Casio fx-CG50</button>
+  <button class="skin-btn" data-skin="hp48gx">HP 48GX</button>
+  <button class="skin-btn" data-skin="hpPrime">HP Prime</button>
+  <button class="skin-btn" data-skin="apple">Apple</button>
+  <button id="debug-btn" title="Toggle hit-area overlay">debug</button>
+</div>
+
+<div id="calc-container">
+
+  <div id="img-calc">
+    <div id="calc-wrap">
+      <img id="calc-img" alt="Calculator">
+      <canvas id="screen-canvas"></canvas>
+      <div id="btn-layer"></div>
+    </div>
+  </div>
+
+  <div id="apple-calc">
+    <div id="apple-display">
+      <div id="apple-expr"></div>
+      <div id="apple-result">0</div>
+    </div>
+    <div id="apple-keys">
+      <button class="apple-key ak-grey" data-val="clear">AC</button>
+      <button class="apple-key ak-grey" data-val="+/-">+/-</button>
+      <button class="apple-key ak-grey" data-val="%">%</button>
+      <button class="apple-key ak-orange" data-val="÷">÷</button>
+
+      <button class="apple-key ak-dark" data-val="7">7</button>
+      <button class="apple-key ak-dark" data-val="8">8</button>
+      <button class="apple-key ak-dark" data-val="9">9</button>
+      <button class="apple-key ak-orange" data-val="×">×</button>
+
+      <button class="apple-key ak-dark" data-val="4">4</button>
+      <button class="apple-key ak-dark" data-val="5">5</button>
+      <button class="apple-key ak-dark" data-val="6">6</button>
+      <button class="apple-key ak-orange" data-val="-">-</button>
+
+      <button class="apple-key ak-dark" data-val="1">1</button>
+      <button class="apple-key ak-dark" data-val="2">2</button>
+      <button class="apple-key ak-dark" data-val="3">3</button>
+      <button class="apple-key ak-orange" data-val="+">+</button>
+
+      <button class="apple-key ak-dark wide" data-val="0">0</button>
+      <button class="apple-key ak-dark" data-val=".">.</button>
+      <button class="apple-key ak-orange" data-val="=">=</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+let expr = '';
+let lastExpr = '';
+let justEvaled = false;
+
+// ─── Math Engine ─────────────────────────────────────────────────────────────
+function evaluate(raw) {
+  try {
+    let s = raw
+      .replace(/×/g, '*')
+      .replace(/÷/g, '/')
+      .replace(/π/g, 'Math.PI')
+      .replace(/sin\(/g, 'Math.sin(')
+      .replace(/cos\(/g, 'Math.cos(')
+      .replace(/tan\(/g, 'Math.tan(')
+      .replace(/log\(/g, 'Math.log10(')
+      .replace(/ln\(/g, 'Math.log(')
+      .replace(/sqrt\(/g, 'Math.sqrt(')
+      .replace(/abs\(/g, 'Math.abs(')
+      .replace(/\^/g, '**')
+      .replace(/(?<![a-zA-Z])e(?![0-9a-zA-Z(])/g, 'Math.E');
+
+    // auto-close unclosed parens
+    const opens  = (s.match(/\(/g) || []).length;
+    const closes = (s.match(/\)/g) || []).length;
+    s += ')'.repeat(Math.max(0, opens - closes));
+
+    // Safety: only allow math-safe chars
+    if (/[a-zA-Z]/.test(s.replace(/Math\.(sin|cos|tan|log10|log|sqrt|abs|PI|E)\b/g, ''))) return 'Error';
+
+    const result = Function('"use strict"; return (' + s + ')')();
+    if (!isFinite(result)) return result > 0 ? '∞' : result < 0 ? '-∞' : 'Error';
+    if (Number.isInteger(result) && Math.abs(result) < 1e15) return String(result);
+    return parseFloat(result.toPrecision(10)).toString();
+  } catch {
+    return 'Error';
+  }
+}
+
+// ─── Key Handler ─────────────────────────────────────────────────────────────
+function handleKey(val) {
+  switch (val) {
+    case 'clear':
+      expr = ''; lastExpr = ''; justEvaled = false;
+      break;
+    case 'del':
+      if (justEvaled) { expr = ''; justEvaled = false; }
+      else expr = expr.slice(0, -1);
+      break;
+    case '=': {
+      if (!expr) break;
+      const res = evaluate(expr);
+      lastExpr = expr;
+      expr = (res === 'Error' || res === '∞' || res === '-∞') ? res : res;
+      justEvaled = true;
+      break;
+    }
+    case '+/-':
+      if (!expr) { expr = '-'; break; }
+      if (expr.startsWith('-(') && expr.endsWith(')')) {
+        expr = expr.slice(2, -1);
+      } else if (/^-?[\d.]+$/.test(expr)) {
+        expr = expr.startsWith('-') ? expr.slice(1) : '-' + expr;
+      } else {
+        expr = '-(' + expr + ')';
+      }
+      justEvaled = false;
+      break;
+    case '%':
+      if (expr) {
+        const res = evaluate(expr);
+        if (res !== 'Error') { expr = String(parseFloat(res) / 100); justEvaled = false; }
+      }
+      break;
+    default: {
+      const isOp = /^[+\-×÷^]$/.test(val);
+      if (justEvaled) {
+        if (/^[0-9.]$/.test(val)) { expr = val; justEvaled = false; break; }
+        if (isOp) { justEvaled = false; }  // chain ops from result
+      }
+      justEvaled = false;
+      expr += val;
+    }
+  }
+  render();
+}
+
+// ─── Skin Definitions ─────────────────────────────────────────────────────────
+// x, y, w, h = percentage of rendered image dimensions
+// v = value passed to handleKey()
+
+const SKINS = {
+
+  ti85: {
+    name: 'TI-85',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/1/12/Texas_Instruments_TI-85_Calculator.JPG',
+    screen: { x: 11, y: 7, w: 78, h: 25 },
+    screenStyle: { bg: '#0c180c', fg: '#c8e060', font: 'bold 14px monospace', small: '10px monospace' },
+    buttons: [
+      // F-key strip below screen (we remap to trig functions)
+      { v:'sin(',  x:9,  y:33.5, w:14, h:5   },
+      { v:'cos(',  x:25, y:33.5, w:14, h:5   },
+      { v:'tan(',  x:41, y:33.5, w:14, h:5   },
+      { v:'log(',  x:57, y:33.5, w:14, h:5   },
+      { v:'ln(',   x:73, y:33.5, w:14, h:5   },
+      // Row 1: 2nd  ↑  alpha  x  DEL
+      { v:'clear', x:9,  y:40,   w:14, h:6.5 },
+      { v:'π',     x:25, y:40,   w:14, h:6.5 },
+      { v:'(',     x:41, y:40,   w:14, h:6.5 },
+      { v:')',     x:57, y:40,   w:14, h:6.5 },
+      { v:'del',   x:73, y:40,   w:14, h:6.5 },
+      // Row 2: (left/down/right arrows area + more functions)
+      { v:'^',     x:9,  y:48,   w:14, h:6.5 },
+      { v:'sqrt(', x:25, y:48,   w:14, h:6.5 },
+      { v:'7',     x:41, y:48,   w:14, h:6.5 },
+      { v:'8',     x:57, y:48,   w:14, h:6.5 },
+      { v:'9',     x:73, y:48,   w:14, h:6.5 },
+      // Row 3
+      { v:'÷',     x:9,  y:56,   w:14, h:6.5 },
+      { v:'×',     x:25, y:56,   w:14, h:6.5 },
+      { v:'4',     x:41, y:56,   w:14, h:6.5 },
+      { v:'5',     x:57, y:56,   w:14, h:6.5 },
+      { v:'6',     x:73, y:56,   w:14, h:6.5 },
+      // Row 4
+      { v:'-',     x:9,  y:64,   w:14, h:6.5 },
+      { v:'+',     x:25, y:64,   w:14, h:6.5 },
+      { v:'1',     x:41, y:64,   w:14, h:6.5 },
+      { v:'2',     x:57, y:64,   w:14, h:6.5 },
+      { v:'3',     x:73, y:64,   w:14, h:6.5 },
+      // Row 5 (bottom)
+      { v:'+/-',   x:9,  y:72,   w:14, h:7   },
+      { v:'.',     x:25, y:72,   w:14, h:7   },
+      { v:'0',     x:41, y:72,   w:14, h:7   },
+      { v:'=',     x:57, y:72,   w:30, h:7   },
+    ]
+  },
+
+  ti83p: {
+    name: 'TI-83 Plus',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/4/4a/TI-83%2B.png',
+    screen: { x: 14, y: 8, w: 72, h: 18 },
+    screenStyle: { bg: '#b8cca0', fg: '#1a2a10', font: 'bold 13px monospace', small: '10px monospace' },
+    buttons: [
+      // Under screen: Y=  WINDOW  ZOOM  TRACE  GRAPH  → remap
+      { v:'sin(',  x:7,  y:28, w:15, h:4.5 },
+      { v:'cos(',  x:24, y:28, w:15, h:4.5 },
+      { v:'tan(',  x:41, y:28, w:15, h:4.5 },
+      { v:'log(',  x:58, y:28, w:15, h:4.5 },
+      { v:'ln(',   x:75, y:28, w:15, h:4.5 },
+      // 2nd  MODE  DEL  ALPHA  X,Tθ  STAT → remap
+      { v:'clear', x:7,  y:33.5, w:12, h:4.5 },
+      { v:'(',     x:21, y:33.5, w:12, h:4.5 },
+      { v:'del',   x:35, y:33.5, w:12, h:4.5 },
+      { v:')',     x:49, y:33.5, w:12, h:4.5 },
+      { v:'^',     x:63, y:33.5, w:12, h:4.5 },
+      { v:'sqrt(', x:77, y:33.5, w:12, h:4.5 },
+      // MATH  APPS  PRGM  VARS  CLEAR → remap
+      { v:'π',     x:7,  y:39,   w:15, h:4.5 },
+      { v:'+/-',   x:24, y:39,   w:15, h:4.5 },
+      { v:'abs(',  x:41, y:39,   w:15, h:4.5 },
+      { v:'e',     x:58, y:39,   w:15, h:4.5 },
+      { v:'clear', x:75, y:39,   w:15, h:4.5 },
+      // x⁻¹  SIN  COS  TAN  ^ (navigation cluster occupies ~y44-55)
+      // skip navigation → resume at the trig/operator row
+      { v:'÷',     x:7,  y:56,   w:15, h:4.5 },
+      { v:'×',     x:24, y:56,   w:15, h:4.5 },
+      { v:'7',     x:41, y:56,   w:15, h:4.5 },
+      { v:'8',     x:58, y:56,   w:15, h:4.5 },
+      { v:'9',     x:75, y:56,   w:15, h:4.5 },
+      // x²  ,  (  )  ÷
+      { v:'-',     x:7,  y:62,   w:15, h:4.5 },
+      { v:'+',     x:24, y:62,   w:15, h:4.5 },
+      { v:'4',     x:41, y:62,   w:15, h:4.5 },
+      { v:'5',     x:58, y:62,   w:15, h:4.5 },
+      { v:'6',     x:75, y:62,   w:15, h:4.5 },
+      // LOG  7  8  9  ×
+      { v:'(',     x:7,  y:68,   w:15, h:4.5 },
+      { v:')',     x:24, y:68,   w:15, h:4.5 },
+      { v:'1',     x:41, y:68,   w:15, h:4.5 },
+      { v:'2',     x:58, y:68,   w:15, h:4.5 },
+      { v:'3',     x:75, y:68,   w:15, h:4.5 },
+      // LN  4  5  6  -   / STO  1  2  3  +
+      { v:'π',     x:7,  y:74,   w:15, h:4.5 },
+      { v:'.',     x:24, y:74,   w:15, h:4.5 },
+      { v:'0',     x:41, y:74,   w:15, h:4.5 },
+      { v:'+/-',   x:58, y:74,   w:15, h:4.5 },
+      { v:'=',     x:75, y:74,   w:15, h:4.5 },
+    ]
+  },
+
+  casio9750: {
+    name: 'Casio fx-9750GIII',
+    img: 'https://static.wixstatic.com/media/3cfc42_ff7dec42610c417aa54ce0911c8a83a4~mv2.png/v1/fill/w_462,h_462,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/3cfc42_ff7dec42610c417aa54ce0911c8a83a4~mv2.png',
+    screen: { x: 16, y: 12, w: 68, h: 20 },
+    screenStyle: { bg: '#b2c8b2', fg: '#1a1a1a', font: 'bold 12px monospace', small: '9px monospace' },
+    buttons: [
+      // F1-F6 row
+      { v:'sin(',  x:11, y:36, w:12, h:5 },
+      { v:'cos(',  x:25, y:36, w:12, h:5 },
+      { v:'tan(',  x:39, y:36, w:12, h:5 },
+      { v:'ln(',   x:53, y:36, w:12, h:5 },
+      { v:'log(',  x:67, y:36, w:12, h:5 },
+      { v:'sqrt(', x:81, y:36, w:11, h:5 },
+      // Row 2: SHIFT  ALPHA  X,θ,T  menu  cursor...
+      { v:'clear', x:11, y:43, w:12, h:5 },
+      { v:'(',     x:25, y:43, w:12, h:5 },
+      { v:')',     x:39, y:43, w:12, h:5 },
+      { v:'^',     x:53, y:43, w:12, h:5 },
+      { v:'del',   x:67, y:43, w:12, h:5 },
+      // Row 3: 7 8 9 DEL  AC
+      { v:'7',     x:11, y:50, w:12, h:5 },
+      { v:'8',     x:25, y:50, w:12, h:5 },
+      { v:'9',     x:39, y:50, w:12, h:5 },
+      { v:'÷',     x:53, y:50, w:12, h:5 },
+      { v:'×',     x:67, y:50, w:12, h:5 },
+      { v:'clear', x:81, y:50, w:11, h:5 },
+      // Row 4: 4 5 6
+      { v:'4',     x:11, y:57, w:12, h:5 },
+      { v:'5',     x:25, y:57, w:12, h:5 },
+      { v:'6',     x:39, y:57, w:12, h:5 },
+      { v:'-',     x:53, y:57, w:12, h:5 },
+      { v:'+',     x:67, y:57, w:12, h:5 },
+      // Row 5: 1 2 3
+      { v:'1',     x:11, y:64, w:12, h:5 },
+      { v:'2',     x:25, y:64, w:12, h:5 },
+      { v:'3',     x:39, y:64, w:12, h:5 },
+      { v:'π',     x:53, y:64, w:12, h:5 },
+      { v:'=',     x:67, y:64, w:12, h:5 },
+      // Row 6: 0  .  (-) EXE
+      { v:'0',     x:11, y:71, w:26, h:5 },
+      { v:'.',     x:39, y:71, w:12, h:5 },
+      { v:'+/-',   x:53, y:71, w:12, h:5 },
+      { v:'=',     x:67, y:71, w:26, h:5 },
+    ]
+  },
+
+  casioCG50: {
+    name: 'Casio fx-CG50',
+    img: 'https://static.wixstatic.com/media/3cfc42_be587b449bdd48caab16f672d80c0e9d~mv2.png/v1/fill/w_462,h_462,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/fx-CG50%20PRIZM.png',
+    screen: { x: 12, y: 10, w: 76, h: 26 },
+    screenStyle: { bg: '#fff', fg: '#111', font: 'bold 13px monospace', small: '10px monospace' },
+    buttons: [
+      { v:'sin(',  x:9,  y:41, w:14, h:5 },
+      { v:'cos(',  x:25, y:41, w:14, h:5 },
+      { v:'tan(',  x:41, y:41, w:14, h:5 },
+      { v:'ln(',   x:57, y:41, w:14, h:5 },
+      { v:'log(',  x:73, y:41, w:14, h:5 },
+      { v:'clear', x:9,  y:48, w:14, h:5 },
+      { v:'(',     x:25, y:48, w:14, h:5 },
+      { v:')',     x:41, y:48, w:14, h:5 },
+      { v:'^',     x:57, y:48, w:14, h:5 },
+      { v:'del',   x:73, y:48, w:14, h:5 },
+      { v:'7',     x:9,  y:55, w:14, h:5 },
+      { v:'8',     x:25, y:55, w:14, h:5 },
+      { v:'9',     x:41, y:55, w:14, h:5 },
+      { v:'÷',     x:57, y:55, w:14, h:5 },
+      { v:'×',     x:73, y:55, w:14, h:5 },
+      { v:'4',     x:9,  y:62, w:14, h:5 },
+      { v:'5',     x:25, y:62, w:14, h:5 },
+      { v:'6',     x:41, y:62, w:14, h:5 },
+      { v:'-',     x:57, y:62, w:14, h:5 },
+      { v:'+',     x:73, y:62, w:14, h:5 },
+      { v:'1',     x:9,  y:69, w:14, h:5 },
+      { v:'2',     x:25, y:69, w:14, h:5 },
+      { v:'3',     x:41, y:69, w:14, h:5 },
+      { v:'sqrt(', x:57, y:69, w:14, h:5 },
+      { v:'π',     x:73, y:69, w:14, h:5 },
+      { v:'0',     x:9,  y:76, w:28, h:5 },
+      { v:'.',     x:39, y:76, w:14, h:5 },
+      { v:'+/-',   x:55, y:76, w:14, h:5 },
+      { v:'=',     x:71, y:76, w:16, h:5 },
+    ]
+  },
+
+  hp48gx: {
+    name: 'HP 48GX',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/1/1f/HP48GX.jpg',
+    screen: { x: 9, y: 4.5, w: 82, h: 16 },
+    screenStyle: { bg: '#1e3018', fg: '#9ad85a', font: 'bold 12px monospace', small: '9px monospace' },
+    buttons: [
+      // Menu row A (6 soft keys)
+      { v:'sin(',  x:4,  y:24, w:13, h:4 },
+      { v:'cos(',  x:19, y:24, w:13, h:4 },
+      { v:'tan(',  x:34, y:24, w:13, h:4 },
+      { v:'log(',  x:49, y:24, w:13, h:4 },
+      { v:'ln(',   x:64, y:24, w:13, h:4 },
+      { v:'sqrt(', x:79, y:24, w:14, h:4 },
+      // Row B
+      { v:'^',     x:4,  y:29, w:13, h:4 },
+      { v:'π',     x:19, y:29, w:13, h:4 },
+      { v:'(',     x:34, y:29, w:13, h:4 },
+      { v:')',     x:49, y:29, w:13, h:4 },
+      { v:'del',   x:64, y:29, w:13, h:4 },
+      { v:'clear', x:79, y:29, w:14, h:4 },
+      // Row C: ops
+      { v:'+/-',   x:4,  y:34, w:13, h:4 },
+      { v:'.',     x:19, y:34, w:13, h:4 },
+      { v:'÷',     x:34, y:34, w:13, h:4 },
+      { v:'×',     x:49, y:34, w:13, h:4 },
+      { v:'-',     x:64, y:34, w:13, h:4 },
+      { v:'+',     x:79, y:34, w:14, h:4 },
+      // Rows D-G: numbers
+      { v:'7',     x:4,  y:39, w:13, h:4 },
+      { v:'8',     x:19, y:39, w:13, h:4 },
+      { v:'9',     x:34, y:39, w:13, h:4 },
+      { v:'=',     x:49, y:39, w:44, h:4 },
+      { v:'4',     x:4,  y:44, w:13, h:4 },
+      { v:'5',     x:19, y:44, w:13, h:4 },
+      { v:'6',     x:34, y:44, w:13, h:4 },
+      { v:'1',     x:4,  y:49, w:13, h:4 },
+      { v:'2',     x:19, y:49, w:13, h:4 },
+      { v:'3',     x:34, y:49, w:13, h:4 },
+      { v:'0',     x:4,  y:54, w:27, h:4 },
+    ]
+  },
+
+  hpPrime: {
+    name: 'HP Prime',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/4/46/HP_Prime_Graphing_Calculator.jpg',
+    screen: { x: 9, y: 6, w: 82, h: 36 },
+    screenStyle: { bg: '#f5f5ff', fg: '#111', font: 'bold 14px monospace', small: '11px monospace' },
+    buttons: [
+      // Physical keys below touchscreen — roughly bottom 45% of image
+      { v:'sin(',  x:8,  y:54, w:17, h:5 },
+      { v:'cos(',  x:27, y:54, w:17, h:5 },
+      { v:'tan(',  x:46, y:54, w:17, h:5 },
+      { v:'log(',  x:65, y:54, w:17, h:5 },
+      { v:'ln(',   x:84, y:54, w:10, h:5 },
+      { v:'(',     x:8,  y:61, w:17, h:5 },
+      { v:')',     x:27, y:61, w:17, h:5 },
+      { v:'^',     x:46, y:61, w:17, h:5 },
+      { v:'sqrt(', x:65, y:61, w:17, h:5 },
+      { v:'clear', x:84, y:61, w:10, h:5 },
+      { v:'7',     x:8,  y:68, w:17, h:5 },
+      { v:'8',     x:27, y:68, w:17, h:5 },
+      { v:'9',     x:46, y:68, w:17, h:5 },
+      { v:'÷',     x:65, y:68, w:17, h:5 },
+      { v:'×',     x:84, y:68, w:10, h:5 },
+      { v:'4',     x:8,  y:75, w:17, h:5 },
+      { v:'5',     x:27, y:75, w:17, h:5 },
+      { v:'6',     x:46, y:75, w:17, h:5 },
+      { v:'-',     x:65, y:75, w:17, h:5 },
+      { v:'+',     x:84, y:75, w:10, h:5 },
+      { v:'1',     x:8,  y:82, w:17, h:5 },
+      { v:'2',     x:27, y:82, w:17, h:5 },
+      { v:'3',     x:46, y:82, w:17, h:5 },
+      { v:'del',   x:65, y:82, w:17, h:5 },
+      { v:'=',     x:84, y:82, w:10, h:10 },
+      { v:'0',     x:8,  y:89, w:30, h:5 },
+      { v:'.',     x:40, y:89, w:17, h:5 },
+      { v:'+/-',   x:59, y:89, w:17, h:5 },
+      { v:'π',     x:78, y:89, w:16, h:5 },
+    ]
+  }
+};
+
+// ─── Layout Builder ───────────────────────────────────────────────────────────
+let currentSkin = 'ti85';
+
+function buildLayout(skin) {
+  const img    = document.getElementById('calc-img');
+  const canvas = document.getElementById('screen-canvas');
+  const layer  = document.getElementById('btn-layer');
+
+  const iw = img.offsetWidth;
+  const ih = img.offsetHeight;
+
+  const s = skin.screen;
+  canvas.style.left   = (s.x / 100 * iw) + 'px';
+  canvas.style.top    = (s.y / 100 * ih) + 'px';
+  canvas.width        = Math.round(s.w / 100 * iw);
+  canvas.height       = Math.round(s.h / 100 * ih);
+
+  layer.innerHTML = '';
+  for (const btn of skin.buttons) {
+    const el = document.createElement('button');
+    el.className   = 'calc-btn';
+    el.style.left  = (btn.x / 100 * iw) + 'px';
+    el.style.top   = (btn.y / 100 * ih) + 'px';
+    el.style.width = (btn.w / 100 * iw) + 'px';
+    el.style.height= (btn.h / 100 * ih) + 'px';
+    el.title       = btn.v;
+    el.addEventListener('click', () => handleKey(btn.v));
+    layer.appendChild(el);
+  }
+
+  renderScreen(skin);
+}
+
+function loadSkin(name) {
+  currentSkin = name;
+  const isApple = name === 'apple';
+
+  document.getElementById('img-calc').style.display   = isApple ? 'none' : 'block';
+  document.getElementById('apple-calc').style.display = isApple ? 'block' : 'none';
+
+  document.querySelectorAll('.skin-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.skin === name));
+
+  if (isApple) { renderApple(); return; }
+
+  const skin = SKINS[name];
+  const img  = document.getElementById('calc-img');
+
+  if (img.src.endsWith(skin.img) || img.src === skin.img) {
+    buildLayout(skin);
+  } else {
+    img.onload = () => buildLayout(skin);
+    img.src    = skin.img;
+  }
+}
+
+// ─── Screen Renderer ──────────────────────────────────────────────────────────
+function renderScreen(skin) {
+  const canvas = document.getElementById('screen-canvas');
+  const ctx    = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const ss = skin.screenStyle;
+
+  ctx.fillStyle = ss.bg;
+  ctx.fillRect(0, 0, w, h);
+
+  const topText = lastExpr.length > 28 ? '…' + lastExpr.slice(-28) : lastExpr;
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = ss.fg;
+  ctx.font = ss.small;
+  ctx.textAlign = 'right';
+  ctx.fillText(topText, w - 4, h * 0.38);
+
+  const main = expr || '0';
+  const mainText = main.length > 20 ? '…' + main.slice(-20) : main;
+  ctx.globalAlpha = 1;
+  ctx.font = ss.font;
+  ctx.fillText(mainText, w - 4, h * 0.78);
+}
+
+function render() {
+  if (currentSkin === 'apple') { renderApple(); return; }
+  const skin = SKINS[currentSkin];
+  if (skin) renderScreen(skin);
+}
+
+function renderApple() {
+  const exprEl   = document.getElementById('apple-expr');
+  const resultEl = document.getElementById('apple-result');
+  const acBtn    = document.querySelector('.apple-key.ak-grey');
+
+  exprEl.textContent   = lastExpr ? lastExpr + ' =' : '';
+  resultEl.textContent = expr || '0';
+
+  const len = (expr || '0').length;
+  resultEl.style.fontSize = len > 12 ? '32px' : len > 9 ? '44px' : '56px';
+  if (acBtn) acBtn.textContent = expr ? 'C' : 'AC';
+}
+
+// ─── Apple Keys ───────────────────────────────────────────────────────────────
+document.getElementById('apple-keys').addEventListener('click', e => {
+  const btn = e.target.closest('.apple-key');
+  if (btn) handleKey(btn.dataset.val);
+});
+
+// ─── Skin Bar ─────────────────────────────────────────────────────────────────
+document.querySelectorAll('.skin-btn').forEach(btn =>
+  btn.addEventListener('click', () => loadSkin(btn.dataset.skin)));
+
+// ─── Debug Toggle ─────────────────────────────────────────────────────────────
+document.getElementById('debug-btn').addEventListener('click', function() {
+  document.body.classList.toggle('debug');
+  this.classList.toggle('on');
+});
+
+// ─── Keyboard ─────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  const map = {
+    '0':'0','1':'1','2':'2','3':'3','4':'4',
+    '5':'5','6':'6','7':'7','8':'8','9':'9',
+    '.':'.', '+':'+', '-':'-', '*':'×', '/':'÷',
+    'Enter':'=', 'Return':'=', 'Backspace':'del',
+    'Escape':'clear', '(':'(', ')':')'
+  };
+  if (map[e.key] !== undefined) { e.preventDefault(); handleKey(map[e.key]); }
+});
+
+// ─── Resize ───────────────────────────────────────────────────────────────────
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (currentSkin !== 'apple') {
+      const skin = SKINS[currentSkin];
+      if (skin) buildLayout(skin);
+    }
+  }, 120);
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+loadSkin('ti85');
+</script>
+</body>
+</html>
