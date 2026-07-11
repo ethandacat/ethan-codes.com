@@ -32,6 +32,31 @@ inherent to the browser, not a bug we can engineer away. The target is an impres
   HTTP-range streaming of the disk image so it doesn't download multi-GB up front.
 - **Phase 5 — Ship.** Host the image (range-capable static host) + the net proxy (small server).
 
+## Progress log
+
+- **Phase 0–1 — DONE.** Real **Ubuntu 22.04.5 LTS amd64** boots to an interactive
+  shell in the browser, 2 GB RAM, via a reproducible pipeline (`tools/`, `server.mjs`).
+  Toolchain: Docker Engine in WSL2 → buildx → `c2w --to-js ubuntu:22.04`.
+  Hard limit found: **wasm32 caps guest RAM at 2047 MB** (3 GB needs wasm64/MEMORY64).
+
+- **Phase 2 — the graphical desktop — BLOCKED at the engine level (R&D archived).**
+  Two independent paths both hit fundamental qemu-wasm limitations:
+  - **Path A — SDL → canvas.** Recompiled qemu-wasm *with* SDL2 (compiles + links —
+    likely a first). But Emscripten can't give QEMU's render *pthread* a WebGL context:
+    no-OffscreenCanvas → `createShader` on undefined; OffscreenCanvas-transfer →
+    main-thread `eglCreateContext` on a transferred canvas; `OFFSCREEN_FRAMEBUFFER` →
+    worker `GLctx` never current. GL-on-pthreads thread-affinity wall.
+  - **Path C — guest framebuffer → 9p → canvas.** 9p channel works with
+    `security_model=none`. But a **framebuffer-enabled kernel** (`DRM_BOCHS` +
+    `DRM_FBDEV_EMULATION` + `FRAMEBUFFER_CONSOLE`) **crashes qemu-wasm itself** —
+    `Cannot convert undefined to a BigInt` in the libffi call path, *before any kernel
+    output*, and **`nomodeset` does not help**. The identical qemu-wasm binary boots
+    plain Ubuntu fine, so it's a deep kernel↔(stripped `--without-default-features`)
+    qemu-wasm incompatibility, not the display driver.
+  - **Verdict:** cracking the desktop needs research-grade patching of qemu-wasm's C
+    internals (its ffi/device emulation, or the Emscripten GL setup) — days-to-weeks,
+    uncertain. Matches the prior art: no one has publicly shipped amd64 graphical-in-browser.
+
 ## Recovery / history
 
 - `pre-rebuild` tag — the original portfolio site.
