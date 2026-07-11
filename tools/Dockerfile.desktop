@@ -1,0 +1,28 @@
+# Lightweight amd64 Ubuntu 22.04 desktop for the browser VM (Path C).
+# Kept lean but complete so we don't rebuild to add a forgotten package.
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      xserver-xorg-core \
+      xserver-xorg-video-fbdev \
+      xserver-xorg-input-libinput \
+      xinit x11-xserver-utils x11-utils \
+      openbox obconf \
+      xterm \
+      tint2 \
+      fonts-dejavu-core \
+      dbus-x11 \
+      fbset fbcat \
+      xdotool \
+      feh \
+      procps nano \
+    && rm -rf /var/lib/apt/lists/*
+
+# Minimal openbox session: dark root + a panel + a terminal.
+RUN mkdir -p /root/.config/openbox && \
+    printf '#!/bin/sh\nxsetroot -solid "#2E3440"\ntint2 &\nxterm -geometry 110x30+30+30 -fa DejaVuSansMono -fs 11 &\n' > /root/.config/openbox/autostart && \
+    chmod +x /root/.config/openbox/autostart
+
+# Boot to a shell; we start X + the framebuffer capture loop from the terminal
+# so we can iterate without rebuilding.
+CMD ["/bin/bash"]

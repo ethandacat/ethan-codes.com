@@ -1,0 +1,23 @@
+diff --git a/cmd/create-spec/main.go b/cmd/create-spec/main.go
+index 834206a..5b950a7 100644
+--- a/cmd/create-spec/main.go
++++ b/cmd/create-spec/main.go
+@@ -374,6 +374,18 @@ func generateSpec(config ocispec.Image, rootfs string) (_ *specs.Spec, err error
+ 
+ 	// TODO: support seccomp and apparmor
+ 	s.Linux.Seccomp = nil
++	// c2w-fbpatch: grant raw device access so the container can read the
++	// framebuffer (/dev/fb0) and write the channel disk (/dev/vdb) for the
++	// in-browser graphical desktop.
++	if s.Linux.Resources == nil {
++		s.Linux.Resources = &specs.LinuxResources{}
++	}
++	s.Linux.Resources.Devices = []specs.LinuxDeviceCgroup{{Allow: true, Access: "rwm"}}
++	fbMode := os.FileMode(0666)
++	s.Linux.Devices = append(s.Linux.Devices,
++		specs.LinuxDevice{Path: "/dev/fb0", Type: "c", Major: 29, Minor: 0, FileMode: &fbMode},
++		specs.LinuxDevice{Path: "/dev/vdb", Type: "b", Major: 254, Minor: 16, FileMode: &fbMode},
++	)
+ 	s.Root = &specs.Root{
+ 		Path: runtimeRootfsPath,
+ 	}

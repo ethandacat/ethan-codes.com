@@ -39,8 +39,23 @@ inherent to the browser, not a bug we can engineer away. The target is an impres
   Toolchain: Docker Engine in WSL2 → buildx → `c2w --to-js ubuntu:22.04`.
   Hard limit found: **wasm32 caps guest RAM at 2047 MB** (3 GB needs wasm64/MEMORY64).
 
-- **Phase 2 — the graphical desktop — BLOCKED at the engine level (R&D archived).**
-  Two independent paths both hit fundamental qemu-wasm limitations:
+- **Phase 2 — the graphical desktop — ✅ DONE. IT WORKS.** A real amd64 Ubuntu
+  X desktop (Xorg + openbox WM + xterm) renders **live in the browser** via Path C.
+  The winning recipe (all in `public/vm-fb/` + `tools/`):
+  1. **fb kernel** — `DRM_BOCHS`+`DRM_FBDEV_EMULATION`+`FRAMEBUFFER_CONSOLE` (Dockerfile.fb)
+     → `/dev/fb0` on the default VGA. Run with `-nographic` (keeps VGA + wires serial).
+  2. **Memory** — guest RAM ≤ ~1 GB (594 MB rootfs must fit the 3000 MB wasm heap).
+  3. **Device access** — patched c2w's `create-spec` (`generateSpec`) to set an
+     allow-all device cgroup + add `/dev/fb0`,`/dev/vdb` nodes; built via
+     `c2w --assets <patched-source>`. Fixes the runc-sandbox `EPERM`.
+  4. **Channel** — a **2nd virtio-blk disk** backed by Emscripten-FS `/tmp/fbdisk`
+     (pre-created in `preRun`). Guest loops `dd if=/dev/fb0 of=/dev/vdb`; JS reads
+     `/tmp/fbdisk` from `Module.FS` and blits (BGRX→RGBA) to canvas.
+  5. **Input to the VM** — inject via `Module.pty.ldisc.writeFromLower(bytes)`
+     (browser terminal focus was unreliable; this is 100% reliable).
+  6. **X** — `mknod /dev/tty0..2`; Xorg fbdev on `/dev/fb0`; `openbox` + `xterm`.
+  Historical R&D below (both engine "walls" turned out to be OOM + serial-routing +
+  container device cgroup, not real engine limits):
   - **Path A — SDL → canvas.** Recompiled qemu-wasm *with* SDL2 (compiles + links —
     likely a first). But Emscripten can't give QEMU's render *pthread* a WebGL context:
     no-OffscreenCanvas → `createShader` on undefined; OffscreenCanvas-transfer →
