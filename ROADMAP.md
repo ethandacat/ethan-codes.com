@@ -76,11 +76,15 @@ inherent to the browser, not a bug we can engineer away. The target is an impres
     valid nodes (`254:16`). So `dd if=/dev/fb0 of=/dev/vdb` silently no-ops and the
     channel disk stays zero. The framebuffer itself is real (`fb0` 1280×800, sysfs
     readable) — the sandbox gates raw device access.
-  - **Next step:** run the capture *outside* the container's device restriction —
-    e.g. `nsenter -t 1 -m -p` into the outer namespace, or bake a permissive device
-    policy / privileged mode into the c2w image so `/dev/fb0` and the channel disk
-    are readable. Then: `dd /dev/fb0 -> /dev/vdb` (loop), blit, and `startx` for a
-    real desktop. No rebuilds needed for the nsenter route; the image approach is one build.
+  - **`nsenter` escape is also blocked** (`reassociate to namespace 'ns/pid' failed:
+    Operation not permitted`) — the container has no `CAP_SYS_ADMIN`. So there's no
+    runtime bypass; the fix must be at **container-config/build time**.
+  - **Next step (one build):** make the c2w guest run with raw device access — a
+    privileged/permissive device cgroup, or explicit `/dev/fb0` + channel-disk grants,
+    or run the capture as the container's *own* entrypoint (which owns its devices)
+    rather than a nested shell. Then `dd /dev/fb0 -> /dev/vdb` (loop) → blit →
+    `startx` (openbox/xterm baked in) for a real desktop. Everything else is proven:
+    framebuffer exists, JS channel reads the disk, blitter renders.
 
 ## Recovery / history
 
