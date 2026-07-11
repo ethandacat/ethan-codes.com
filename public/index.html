@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ubuntu, in the browser</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      min-height: 100vh; display: grid; place-items: center;
+      font: 15px/1.6 -apple-system, system-ui, sans-serif;
+      background: #1a0e14; color: #eee; text-align: center; padding: 2rem;
+    }
+    .wrap { max-width: 640px; }
+    h1 { font-size: 1.6rem; margin-bottom: .4rem; }
+    .sub { color: #b79; margin-bottom: 2rem; }
+    .card { border: 1px solid #4a2f3a; border-radius: 12px; padding: 1.2rem 1.4rem; background: #241118; text-align: left; }
+    .row { display: flex; justify-content: space-between; gap: 1rem; padding: .4rem 0; border-bottom: 1px solid #3a2029; }
+    .row:last-child { border-bottom: 0; }
+    .k { color: #b79; }
+    .ok { color: #7ee787; font-weight: 600; }
+    .no { color: #ff7b72; font-weight: 600; }
+    code { background: #000; padding: .1rem .4rem; border-radius: 4px; color: #e6a; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Ubuntu 22.04 — in the browser</h1>
+    <p class="sub">Foundation online. Booting the VM is the next phase.</p>
+    <div class="card" id="checks"></div>
+  </div>
+  <script>
+    const rows = [
+      ['Cross-origin isolated', crossOriginIsolated],
+      ['SharedArrayBuffer', typeof SharedArrayBuffer !== 'undefined'],
+      ['WebAssembly', typeof WebAssembly !== 'undefined'],
+      ['WebAssembly.Module (JIT target)', typeof WebAssembly?.Module === 'function'],
+      ['Hardware threads', navigator.hardwareConcurrency || '?'],
+    ];
+    document.getElementById('checks').innerHTML = rows.map(([k, v]) => {
+      const good = v === true || (typeof v === 'number' && v > 0);
+      const cls = v === true ? 'ok' : v === false ? 'no' : '';
+      const val = v === true ? '✓ yes' : v === false ? '✗ no' : v;
+      return `<div class="row"><span class="k">${k}</span><span class="${cls}">${val}</span></div>`;
+    }).join('');
+  </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+node_modules/
+dist/
+vendor/
+# Generated VM bundle (large: wasm + streamed disk image)
+public/vm/
+*.log
+.DS_Store

@@ -1,0 +1,10 @@
+{
+  "name": "browser-ubuntu",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Ubuntu 22.04 LTS (amd64) running in the browser via qemu-wasm.",
+  "scripts": {
+    "serve": "node server.mjs"
+  }
+}
