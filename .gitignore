@@ -1,7 +1,8 @@
 node_modules/
 dist/
 vendor/
-# Generated VM bundle (large: wasm + streamed disk image)
-public/vm/
+# Generated VM bundle (large: wasm + rootfs) — track only our hand-written boot page
+public/vm/*
+!public/vm/index.html
 *.log
 .DS_Store

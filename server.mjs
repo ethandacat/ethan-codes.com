@@ -30,9 +30,12 @@ const MIME = {
 };
 
 function isoHeaders(res) {
-  // The two headers that unlock SharedArrayBuffer.
+  // The headers that unlock SharedArrayBuffer. 'credentialless' still yields
+  // cross-origin isolation but lets no-CORS cross-origin subresources (the
+  // xterm/xterm-pty CDN scripts) load without CORP headers. Vendor + switch
+  // to 'require-corp' for production.
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
 }
 
