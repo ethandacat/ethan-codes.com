@@ -56,9 +56,22 @@ inherent to the browser, not a bug we can engineer away. The target is an impres
     the boot before a single serial line; remove the display device and it boots to a
     shell. So no `/dev/fb0` is obtainable. Same fundamental layer as Path A: qemu-wasm
     has no working display path — by *device realization* and by *GL rendering*.
-  - **Verdict:** cracking the desktop needs research-grade patching of qemu-wasm's C
-    internals (its ffi/device emulation, or the Emscripten GL setup) — days-to-weeks,
-    uncertain. Matches the prior art: no one has publicly shipped amd64 graphical-in-browser.
+  - **Verdict (Path A):** the SDL/GL route needs research-grade Emscripten-GL work.
+  - **Path C is actually VIABLE — the "engine walls" were misdiagnoses.** The blockers
+    were mundane: (1) OOM (drop guest RAM to ~512 MB–1 GB so 594 MB rootfs + guest fit
+    the 3000 MB heap); (2) serial routing — `-vga std -display none` doesn't wire
+    serial to stdio like `-nographic` does, so the guest *looked* hung while booting
+    fine; (3) `-nographic` keeps the default VGA, so the fb kernel registers **`fb0`
+    at 1280×800×32 (stride 5120)** — `/dev/fb0` just needs a manual `mknod c 29 0`
+    (no udev in the minimal container). `cat /dev/fb0` works.
+  - **Channel:** 9p/virtfs is rejected by qemu-wasm (`permission denied`, all options).
+    Pivoted to a **second virtio-blk disk** backed by an Emscripten-FS file
+    (`-drive file=/tmp/fbdisk`, pre-created in `preRun`): guest `dd`s `/dev/fb0` →
+    `/dev/vdb`, JS reads `/tmp/fbdisk` from `Module.FS` and blits to canvas.
+  - **Status: ~1 step from pixels on canvas, no more rebuilds needed** — wire the
+    guest capture (`mknod /dev/vdb` from `/sys/block/vdb/dev`; `dd if=/dev/fb0
+    of=/dev/vdb`; loop for live), then start X (openbox/xterm are baked in) for a
+    real desktop. `public/vm-fb/index.html` has the blitter + disk pre-create ready.
 
 ## Recovery / history
 
