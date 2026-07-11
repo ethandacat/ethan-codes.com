@@ -47,12 +47,15 @@ inherent to the browser, not a bug we can engineer away. The target is an impres
     main-thread `eglCreateContext` on a transferred canvas; `OFFSCREEN_FRAMEBUFFER` →
     worker `GLctx` never current. GL-on-pthreads thread-affinity wall.
   - **Path C — guest framebuffer → 9p → canvas.** 9p channel works with
-    `security_model=none`. But a **framebuffer-enabled kernel** (`DRM_BOCHS` +
-    `DRM_FBDEV_EMULATION` + `FRAMEBUFFER_CONSOLE`) **crashes qemu-wasm itself** —
-    `Cannot convert undefined to a BigInt` in the libffi call path, *before any kernel
-    output*, and **`nomodeset` does not help**. The identical qemu-wasm binary boots
-    plain Ubuntu fine, so it's a deep kernel↔(stripped `--without-default-features`)
-    qemu-wasm incompatibility, not the display driver.
+    `security_model=none`. The framebuffer kernel (`DRM_BOCHS` + `DRM_FBDEV_EMULATION`
+    + `FRAMEBUFFER_CONSOLE`) **boots fine** — the earlier "BigInt crash" was a *red
+    herring: pure OOM* (594 MB desktop rootfs + 2 GB guest RAM > 3000 MB wasm heap;
+    drop guest RAM to ~1 GB and it boots). The **real wall**: qemu-wasm **hangs during
+    QEMU device-realization whenever *any* display device is present** — `-vga std`,
+    `-device bochs-display` (romfile disabled), and `-device virtio-gpu-pci` all hang
+    the boot before a single serial line; remove the display device and it boots to a
+    shell. So no `/dev/fb0` is obtainable. Same fundamental layer as Path A: qemu-wasm
+    has no working display path — by *device realization* and by *GL rendering*.
   - **Verdict:** cracking the desktop needs research-grade patching of qemu-wasm's C
     internals (its ffi/device emulation, or the Emscripten GL setup) — days-to-weeks,
     uncertain. Matches the prior art: no one has publicly shipped amd64 graphical-in-browser.
