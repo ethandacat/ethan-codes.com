@@ -68,10 +68,19 @@ inherent to the browser, not a bug we can engineer away. The target is an impres
     Pivoted to a **second virtio-blk disk** backed by an Emscripten-FS file
     (`-drive file=/tmp/fbdisk`, pre-created in `preRun`): guest `dd`s `/dev/fb0` →
     `/dev/vdb`, JS reads `/tmp/fbdisk` from `Module.FS` and blits to canvas.
-  - **Status: ~1 step from pixels on canvas, no more rebuilds needed** — wire the
-    guest capture (`mknod /dev/vdb` from `/sys/block/vdb/dev`; `dd if=/dev/fb0
-    of=/dev/vdb`; loop for live), then start X (openbox/xterm are baked in) for a
-    real desktop. `public/vm-fb/index.html` has the blitter + disk pre-create ready.
+  - **Blitter + channel proven at the JS layer:** `public/vm-fb/index.html` reads the
+    4,096,000-byte channel disk out of `Module.FS` and blits (verified).
+  - **FINAL obstacle found — the c2w runc container's device cgroup.** Inside the
+    guest we're in the sandboxed container; raw device reads fail with **`EPERM`
+    (Operation not permitted)** on `/dev/fb0` *and* `/dev/vdb`, even as root with
+    valid nodes (`254:16`). So `dd if=/dev/fb0 of=/dev/vdb` silently no-ops and the
+    channel disk stays zero. The framebuffer itself is real (`fb0` 1280×800, sysfs
+    readable) — the sandbox gates raw device access.
+  - **Next step:** run the capture *outside* the container's device restriction —
+    e.g. `nsenter -t 1 -m -p` into the outer namespace, or bake a permissive device
+    policy / privileged mode into the c2w image so `/dev/fb0` and the channel disk
+    are readable. Then: `dd /dev/fb0 -> /dev/vdb` (loop), blit, and `startx` for a
+    real desktop. No rebuilds needed for the nsenter route; the image approach is one build.
 
 ## Recovery / history
 
