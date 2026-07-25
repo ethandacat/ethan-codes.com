@@ -1,32 +1,35 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# setup-webuntu.sh — stand up the Webuntu app on an Ubuntu box (e.g. a Litehost VM).
+# setup-webuntu.sh — deploy Webuntu on any fresh Ubuntu VPS. No control panel needed.
 #
-# Serves the browser-VM app via the bundled Node server (server.mjs). server.mjs
-# sets the mandatory Cross-Origin-Isolation headers (COOP/COEP -> SharedArrayBuffer,
-# which qemu-wasm's threads REQUIRE), HTTP Range, and ETag caching itself — so you
-# do NOT need the host panel to support custom headers. Front it with Litehost/Nginx
-# for TLS on box.eths.dev.
+# Installs Node + the app + (optionally) Caddy for automatic HTTPS, and runs it as a
+# systemd service. The bundled Node server (server.mjs) sets the mandatory
+# Cross-Origin-Isolation headers (COOP/COEP -> SharedArrayBuffer, which qemu-wasm's
+# threads REQUIRE), plus HTTP Range and ETag caching — so no host/proxy header config
+# is needed.
 #
-# One-time prereqs on the box:
-#   sudo apt-get update && sudo apt-get install -y gh git curl
-#   gh auth login          # this repo is private, so gh must be authed
+# Run ON THE BOX:
+#   DOMAIN=box.eths.dev bash setup-webuntu.sh    # full: app + auto-HTTPS on your domain
+#   bash setup-webuntu.sh                         # app only on :8099 (bring your own TLS)
 #
-# Then:  bash setup-webuntu.sh
+# For DOMAIN mode: point the domain's DNS A/AAAA record at this box FIRST, and open
+# ports 80 + 443 (Caddy needs them to get the Let's Encrypt cert).
 #
-# The relay (real networking) is a SEPARATE, optional piece — see RELAY-DEPLOY.md.
+# The networking relay (real internet for the "on" toggle) is separate + optional:
+# see deploy/RELAY-DEPLOY.md.
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
-REPO="ethandacat/ethan-codes.com"
+REPO_URL="https://github.com/ethandacat/ethan-codes.com.git"
+SNAP_URL="https://github.com/ethandacat/ethan-codes.com/releases/latest/download/jammy-min.snap.qcow2.gz"
 APP_DIR="${APP_DIR:-/opt/webuntu}"
 PORT="${PORT:-8099}"
-SNAPSHOT="public/vm-fb/jammy-min.snap.qcow2.gz"
+DOMAIN="${DOMAIN:-}"
+SNAP="public/vm-fb/jammy-min.snap.qcow2.gz"
 
-# --- prereqs ---
-miss=0; for c in git curl gh; do command -v "$c" >/dev/null || { echo "missing: $c"; miss=1; }; done
-[ "$miss" = 1 ] && { echo "install the above first (gh: apt-get install -y gh && gh auth login), then re-run."; exit 1; }
-gh auth status >/dev/null 2>&1 || { echo "run 'gh auth login' first (repo is private)."; exit 1; }
+echo "[*] base packages..."
+sudo apt-get update -y
+sudo apt-get install -y git curl ca-certificates
 
 # --- Node.js 20+ ---
 NODEMAJ="$(node -v 2>/dev/null | sed -n 's/^v\([0-9]\+\).*/\1/p' || true)"
@@ -36,23 +39,21 @@ if [ -z "$NODEMAJ" ] || [ "$NODEMAJ" -lt 18 ]; then
   sudo apt-get install -y nodejs
 fi
 
-# --- code (clone or update) ---
+# --- app code (public repo -> no auth) ---
 if [ -d "$APP_DIR/.git" ]; then
-  echo "[*] updating $APP_DIR ..."
-  git -C "$APP_DIR" pull --ff-only
+  echo "[*] updating $APP_DIR ..."; git -C "$APP_DIR" pull --ff-only
 else
-  echo "[*] cloning $REPO -> $APP_DIR ..."
-  sudo mkdir -p "$APP_DIR"; sudo chown "$(id -un)" "$APP_DIR"
-  gh repo clone "$REPO" "$APP_DIR"
+  echo "[*] cloning -> $APP_DIR ..."; sudo mkdir -p "$APP_DIR"; sudo chown "$(id -un)" "$APP_DIR"
+  git clone "$REPO_URL" "$APP_DIR"
 fi
 cd "$APP_DIR"
 
-# --- the 345 MB pre-booted snapshot (a Release asset, not in git) ---
-if [ ! -f "$SNAPSHOT" ]; then
-  echo "[*] downloading pre-booted snapshot from the latest Release..."
-  gh release download -R "$REPO" --pattern 'jammy-min.snap.qcow2.gz' -D public/vm-fb/ --clobber
+# --- 345 MB pre-booted snapshot (a Release asset, not in git) ---
+if [ ! -f "$SNAP" ]; then
+  echo "[*] downloading pre-booted snapshot (~345 MB)..."
+  curl -fL --retry 3 -o "$SNAP" "$SNAP_URL"
 fi
-echo -n "[*] snapshot: "; ls -lh "$SNAPSHOT" | awk '{print $5}'
+echo "[*] snapshot: $(ls -lh "$SNAP" | awk '{print $5}')"
 
 # --- run server.mjs as a systemd service ---
 echo "[*] installing systemd service 'webuntu' on port $PORT ..."
@@ -76,29 +77,36 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now webuntu
 sleep 1
-curl -sS -o /dev/null -w "[*] local check: HTTP %{http_code}\n" "http://127.0.0.1:$PORT/" || true
+curl -sS -o /dev/null -w "[*] app check: HTTP %{http_code} on 127.0.0.1:$PORT\n" "http://127.0.0.1:$PORT/" || true
 
-cat <<NEXT
-
-============================================================================
- Webuntu is live on 127.0.0.1:$PORT  (systemctl status webuntu)
-============================================================================
-Now point box.eths.dev at it. In Litehost, create a site for box.eths.dev and
-proxy it to this port; the generated Nginx 'location' needs these two lines
-(the rest of the isolation/Range headers come straight from the Node app —
-don't strip them):
-
-    location / {
-        proxy_pass http://127.0.0.1:$PORT;
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-        proxy_buffering off;            # stream the 345MB snapshot + 49MB wasm
-        proxy_read_timeout 3600s;       # long-lived VM sessions
-    }
-
-Let Litehost/Let's Encrypt issue TLS for box.eths.dev, then open
-https://box.eths.dev — it should boot Ubuntu.
-
-To update later:  bash setup-webuntu.sh   (pulls + restarts)
-Networking relay (optional): see deploy/RELAY-DEPLOY.md
-NEXT
+# --- HTTPS via Caddy (only if DOMAIN is set) ---
+if [ -n "$DOMAIN" ]; then
+  if ! command -v caddy >/dev/null; then
+    echo "[*] installing Caddy..."
+    sudo apt-get install -y debian-keyring debian-archive-keyring apt-transport-https
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list >/dev/null
+    sudo apt-get update -y && sudo apt-get install -y caddy
+  fi
+  echo "[*] configuring Caddy for https://$DOMAIN ..."
+  sudo tee /etc/caddy/Caddyfile >/dev/null <<EOF
+$DOMAIN {
+	# COOP/COEP + Range + caching come from the Node app; Caddy just terminates TLS.
+	reverse_proxy 127.0.0.1:$PORT
+}
+EOF
+  sudo systemctl restart caddy
+  echo
+  echo "============================================================"
+  echo "  Webuntu is LIVE:   https://$DOMAIN"
+  echo "============================================================"
+  echo "  (DNS for $DOMAIN must point at this box + 80/443 open for the cert.)"
+else
+  echo
+  echo "============================================================"
+  echo "  Webuntu app is running on 127.0.0.1:$PORT (no TLS yet)."
+  echo "  Add HTTPS by re-running with your domain:"
+  echo "      DOMAIN=box.eths.dev bash setup-webuntu.sh"
+  echo "============================================================"
+fi
+echo "Update later:  bash setup-webuntu.sh   |   Networking relay: deploy/RELAY-DEPLOY.md"
