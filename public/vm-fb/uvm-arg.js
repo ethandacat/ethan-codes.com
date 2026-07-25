@@ -12,7 +12,15 @@ const _np = new URLSearchParams(location.search);
 const _netPref = _np.get('net') || localStorage.getItem('ubuntu_net') || 'off';
 const NET_ON = _netPref === 'on';
 window.__NET_ON = NET_ON;                 // uvm.html reads this to reflect state + auto-DHCP
-const _relay = (window.__RELAY || 'localhost:8888');   // deploy: point at your relay host
+
+// Relay endpoint. In production (page served over HTTPS) we tunnel to a wss:// relay
+// derived from the app's own hostname by convention — box.eths.dev -> relay.eths.dev —
+// and tell Emscripten's socket layer to open a SECURE WebSocket (an HTTPS page can't use
+// ws://). Local dev uses the plain ws relay on localhost:8888. Override anytime by setting
+// window.__RELAY = 'host:port' before this runs.
+const _tls = location.protocol === 'https:';
+const _relay = window.__RELAY || (_tls ? location.hostname.replace(/^[^.]+/, 'relay') + ':443' : 'localhost:8888');
+if (_tls) Module['websocket'] = { url: 'wss://' };   // -> wss://relay.<domain>:443 for the netdev socket
 
 Module['arguments'] = [
     "-nographic",
