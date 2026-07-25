@@ -46,14 +46,50 @@ const server = createServer(async (req, res) => {
     // Resolve path, block traversal, default to index.html.
     let rel = decodeURIComponent((req.url ?? '/').split('?')[0]);
     if (rel.endsWith('/')) rel += 'index.html';
-    const path = normalize(join(ROOT, rel));
+    let path = normalize(join(ROOT, rel));
     if (!path.startsWith(ROOT)) { res.writeHead(403).end('Forbidden'); return; }
 
-    const info = await stat(path).catch(() => null);
-    if (!info || !info.isFile()) { res.writeHead(404).end('Not found'); return; }
+    // Directory request (e.g. /instances) -> serve its index.html.
+    const dinfo = await stat(path).catch(() => null);
+    if (dinfo && dinfo.isDirectory()) path = join(path, 'index.html');
 
     const type = MIME[extname(path).toLowerCase()] ?? 'application/octet-stream';
+
+    const info = await stat(path).catch(() => null);
+    const gz = await stat(path + '.gz').catch(() => null);   // pre-compressed sibling, if any
+    const acceptsGzip = /\bgzip\b/.test(req.headers['accept-encoding'] || '');
+
+    // Validate against the raw file when present, else the .gz (snapshot case).
+    const vstat = info && info.isFile() ? info : (gz && gz.isFile() ? gz : null);
+    if (!vstat) { res.writeHead(404).end('Not found'); return; }
+
+    // Revalidating cache: browsers keep the (345 MB) snapshot etc. and re-check with a
+    // conditional GET. Unchanged -> a tiny 304, no re-download. A re-snapshot changes the
+    // file's size/mtime -> new ETag -> the browser fetches the new bytes once. Safe by
+    // default (no stale-forever 'immutable' footgun).
+    const etag = `"${vstat.size.toString(16)}-${Math.round(vstat.mtimeMs).toString(16)}"`;
+    res.setHeader('ETag', etag);
+    res.setHeader('Last-Modified', new Date(vstat.mtimeMs).toUTCString());
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    if (req.headers['if-none-match'] === etag) { res.writeHead(304).end(); return; }
+
     res.setHeader('Content-Type', type);
+
+    if (!(info && info.isFile())) {
+      // Raw file absent but a .gz exists (e.g. the big snapshot disk) -> serve it encoded.
+      if (acceptsGzip && gz && gz.isFile()) {
+        const gfh = await open(path + '.gz');
+        res.writeHead(200, {
+          'Content-Length': gz.size,
+          'Content-Encoding': 'gzip',
+          'Vary': 'Accept-Encoding',
+        });
+        gfh.createReadStream().pipe(res).on('close', () => gfh.close());
+        return;
+      }
+      res.writeHead(404).end('Not found'); return;
+    }
+
     res.setHeader('Accept-Ranges', 'bytes');
 
     // Range request (essential for streaming the disk image + big wasm).
@@ -73,6 +109,24 @@ const server = createServer(async (req, res) => {
           'Content-Length': end - start + 1,
         });
         fh.createReadStream({ start, end }).pipe(res).on('close', () => fh.close());
+        return;
+      }
+    }
+
+    // Transparent pre-compressed sibling: if <path>.gz exists and the client
+    // accepts gzip, serve that with Content-Encoding: gzip. The browser
+    // decompresses for us, so the big snapshot qcow2 downloads ~35% smaller with
+    // zero client changes. (Only for full GETs — gzip doesn't compose with Range.)
+    if (acceptsGzip) {
+      if (gz && gz.isFile()) {
+        const gfh = await open(path + '.gz');
+        res.removeHeader('Accept-Ranges');
+        res.writeHead(200, {
+          'Content-Length': gz.size,
+          'Content-Encoding': 'gzip',
+          'Vary': 'Accept-Encoding',
+        });
+        gfh.createReadStream().pipe(res).on('close', () => gfh.close());
         return;
       }
     }

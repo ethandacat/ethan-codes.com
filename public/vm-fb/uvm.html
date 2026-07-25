@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ubuntu 22.04 — Terminal</title>
+  <link rel="stylesheet" href="https://unpkg.com/xterm@5.3.0/css/xterm.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --orange:#E95420; --aubergine:#2C001E; --term-bg:#300A24; --purple:#77216F;
+      --yaru-line:#e6e3df; --font:'Ubuntu',system-ui,-apple-system,'Segoe UI',sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:var(--font);overflow:hidden;color:#eee;
+      background:
+        radial-gradient(120% 90% at 82% 112%, rgba(233,84,32,.40) 0%, rgba(233,84,32,0) 46%),
+        radial-gradient(90% 80% at 16% -12%, rgba(119,33,111,.55) 0%, rgba(119,33,111,0) 55%),
+        linear-gradient(150deg,#3a0b2c 0%,#2c001e 42%,#1c0413 100%);
+    }
+    /* GNOME top bar */
+    .topbar{position:fixed;top:0;left:0;right:0;height:28px;z-index:40;background:rgba(0,0,0,.82);
+      color:#fff;display:flex;align-items:center;padding:0 10px;font-size:13px;font-weight:500}
+    .topbar .back{display:flex;align-items:center;gap:3px;padding:2px 9px 2px 6px;border-radius:6px;cursor:pointer}
+    .topbar .back:hover{background:rgba(255,255,255,.14)}
+    .topbar .back svg{width:14px;height:14px;fill:#fff}
+    .topbar .name{position:absolute;left:50%;transform:translateX(-50%);font-weight:500;display:flex;align-items:center;gap:8px}
+    .topbar .name .dot{width:8px;height:8px;border-radius:50%;background:#2ec27e;box-shadow:0 0 7px #2ec27e}
+    .topbar .savebtn{margin-left:auto;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border:0;cursor:pointer;
+      font-family:var(--font);font-size:12.5px;font-weight:500;padding:3px 11px;border-radius:6px;color:#fff}
+    .topbar .savebtn:hover{background:rgba(255,255,255,.2)}
+    .topbar .savebtn.busy{opacity:.65;cursor:default}
+    .topbar .savebtn.saved{color:#8ae234}
+    .topbar .savebtn svg{width:14px;height:14px;fill:currentColor}
+    .topbar .nettoggle{margin-left:14px;display:flex;align-items:center;gap:6px;background:none;border:0;cursor:default;
+      font-family:var(--font);font-size:12.5px;font-weight:500;padding:3px 9px;border-radius:6px;color:#fff}
+    .topbar .nettoggle svg{width:15px;height:15px;fill:currentColor}
+    .topbar .nettoggle.on{color:#ff7a4d}
+    .topbar .nettoggle.off{color:#a79ba3}
+    .topbar .clk{font-variant-numeric:tabular-nums;padding-left:12px}
+
+    /* leave / save-first confirm modal (shown on in-app Back/Close when there are unsaved changes) */
+    .leave-scrim{position:fixed;inset:0;z-index:70;display:none;place-items:center;background:rgba(10,2,7,.55);backdrop-filter:blur(2px)}
+    .leave-scrim.show{display:grid}
+    .leave-box{width:410px;max-width:92vw;background:#2a0a20;border:1px solid #4a2440;border-radius:14px;padding:22px 22px 18px;
+      color:#f3e9ef;font-family:var(--font);box-shadow:0 30px 80px rgba(0,0,0,.6);animation:lpop .18s ease both}
+    @keyframes lpop{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+    .leave-box h2{font-size:16px;font-weight:700;margin-bottom:8px}
+    .leave-box p{font-size:13.5px;line-height:1.5;color:#d7c6d2}
+    .leave-optout{display:flex;align-items:center;gap:8px;margin-top:15px;font-size:12.5px;color:#bcaab6;cursor:pointer;user-select:none}
+    .leave-optout input{width:15px;height:15px;accent-color:var(--orange);cursor:pointer}
+    .leave-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:18px;flex-wrap:wrap}
+    .leave-actions .lb{font-family:var(--font);font-size:13px;font-weight:500;padding:8px 14px;border-radius:8px;border:1px solid #593052;background:transparent;color:#f3e9ef;cursor:pointer}
+    .leave-actions .lb:hover{background:rgba(255,255,255,.08)}
+    .leave-actions .lb.ghost{color:#c9b6c4}
+    .leave-actions .lb.primary{background:var(--orange);border-color:var(--orange);color:#fff}
+    .leave-actions .lb.primary:hover{background:#c7431a}
+
+    /* fullscreen (maximized) terminal filling everything below the top bar */
+    .stage{position:fixed;inset:28px 0 0 0}
+    .termwin{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;animation:fade .3s ease both}
+    @keyframes fade{from{opacity:0}to{opacity:1}}
+    .tbar{height:38px;flex:none;display:flex;align-items:center;gap:9px;padding:0 14px;
+      background:linear-gradient(#343138,#2a272d);color:#e6e3df;font-size:13px;font-weight:500;
+      box-shadow:0 1px 0 rgba(0,0,0,.35)}
+    .tbar .ticon{width:17px;height:17px}
+    .tbar .ttitle{opacity:.95;letter-spacing:.2px}
+    .tbar .wctl{margin-left:auto;display:flex;gap:10px}
+    .tbar .wc{width:15px;height:15px;border-radius:50%;display:grid;place-items:center;cursor:pointer}
+    .tbar .wc.min{background:#413d44;border:1px solid #56525a}
+    .tbar .wc.max{background:#413d44;border:1px solid #56525a}
+    .tbar .wc.cls{background:#E95420}
+    .tbar .wc.cls:hover{background:#ff6a3d}
+    /* frosted-glass aubergine: the wallpaper glow softly shows through */
+    .tbody{flex:1;position:relative;min-height:0;padding:16px 8px 12px 22px;
+      background:linear-gradient(160deg, rgba(58,11,44,.30), rgba(28,4,19,.30));
+      backdrop-filter:blur(22px) saturate(1.15);-webkit-backdrop-filter:blur(22px) saturate(1.15)}
+    .tbody::after{content:"";position:absolute;inset:0;pointer-events:none;
+      box-shadow:inset 0 22px 40px -26px rgba(0,0,0,.6)}
+    #terminal{width:100%;height:100%}
+    .xterm .xterm-viewport{background-color:transparent!important}
+    .xterm-viewport::-webkit-scrollbar{width:10px}
+    .xterm-viewport::-webkit-scrollbar-thumb{background:rgba(173,127,168,.35);border-radius:8px}
+    .xterm-viewport::-webkit-scrollbar-thumb:hover{background:rgba(173,127,168,.55)}
+
+    /* loading overlay */
+    .load{position:fixed;inset:0;z-index:60;display:grid;place-items:center;
+      background:radial-gradient(60% 60% at 50% 45%, rgba(44,0,30,.55), rgba(20,4,14,.86));
+      transition:opacity .5s ease;backdrop-filter:blur(2px)}
+    .load.hide{opacity:0;pointer-events:none}
+    .load .box{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+    .load .ulogo{width:66px;height:66px}
+    .load .spin{width:40px;height:40px;border:4px solid rgba(255,255,255,.16);border-top-color:var(--orange);
+      border-radius:50%;animation:spin .9s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .load h1{font-size:16px;font-weight:500;color:#fff;letter-spacing:.2px}
+    .load .st{font-size:13px;color:#d9c7d6;min-height:18px}
+    .load .bar{width:230px;height:5px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden}
+    .load .bar i{display:block;height:100%;width:30%;background:var(--orange);border-radius:4px;transition:width .3s ease}
+
+    /* right-click context menu (Yaru) */
+    .ctxmenu{position:fixed;z-index:70;min-width:190px;background:#faf9f7;border:1px solid #dcd8d2;border-radius:9px;
+      box-shadow:0 14px 38px rgba(0,0,0,.38);padding:6px;display:none;font-family:var(--font);font-size:13.5px;color:#3d3936}
+    .ctxmenu.show{display:block;animation:fade .1s ease both}
+    .ctxmenu .mi{display:flex;justify-content:space-between;align-items:center;gap:26px;padding:7px 11px;border-radius:6px;cursor:pointer}
+    .ctxmenu .mi:hover{background:var(--orange);color:#fff}
+    .ctxmenu .mi.dis{opacity:.38;pointer-events:none}
+    .ctxmenu .mi .sc{font-size:11.5px;opacity:.55}
+    .ctxmenu .mi:hover .sc{opacity:.85}
+    .ctxmenu .sep{height:1px;background:#e6e3df;margin:5px 6px}
+    /* copied toast */
+    .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(8px);z-index:80;
+      background:rgba(20,4,14,.9);color:#fff;font-family:var(--font);font-size:13px;padding:8px 16px;border-radius:22px;
+      opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;box-shadow:0 6px 22px rgba(0,0,0,.45);
+      display:flex;align-items:center;gap:7px}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .toast svg{width:15px;height:15px;fill:#8ae234}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="back" id="backBtn"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7 1.4-1.4L10.8 12l5.6-5.6z"/></svg>Instances</span>
+    <span class="name"><span class="dot"></span><span id="vmName">Ubuntu 22.04 LTS</span></span>
+    <button class="savebtn" id="saveBtn" title="Save this instance so your changes survive a reload">
+      <svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm2 2v5h8V5H7zm5 6a3 3 0 100 6 3 3 0 000-6z"/></svg>
+      <span id="saveLbl">Save</span>
+    </button>
+    <button class="nettoggle" id="netBtn" title="Toggle networking">
+      <svg viewBox="0 0 24 24"><path d="M12 3C7 3 2.7 5 0 8l2 2c2.3-2.3 6-4 10-4s7.7 1.7 10 4l2-2C21.3 5 17 3 12 3zm0 6c-3 0-5.7 1.2-7.6 3.1l2 2C7.8 12.8 9.8 12 12 12s4.2.8 5.6 2.1l2-2C17.7 10.2 15 9 12 9zm0 6c-1.4 0-2.7.5-3.6 1.4L12 20l3.6-3.6C14.7 15.5 13.4 15 12 15z"/></svg>
+      <span class="lbl" id="netLbl">Online</span>
+    </button>
+    <span class="clk" id="clk"></span>
+  </div>
+
+  <div class="stage">
+    <div class="termwin">
+      <div class="tbar">
+        <svg class="ticon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="3" fill="#2c001e"/><path d="M6 8l3.2 3.2L6 14.4M12 15h6" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="ttitle" id="ttitle">root@ubuntu-wasm: ~</span>
+        <div class="wctl"><div class="wc min"></div><div class="wc max"></div><div class="wc cls" id="clsBtn" title="Close"></div></div>
+      </div>
+      <div class="tbody"><div id="terminal"></div></div>
+    </div>
+  </div>
+
+  <div class="load" id="load">
+    <div class="box">
+      <svg class="ulogo" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#E95420"/><g fill="#fff">
+        <circle cx="84" cy="50" r="8"/><circle cx="33" cy="21" r="8"/><circle cx="33" cy="79" r="8"/></g>
+        <g stroke="#fff" stroke-width="4" fill="none"><circle cx="50" cy="50" r="20"/>
+        <line x1="50" y1="50" x2="84" y2="50"/><line x1="50" y1="50" x2="33" y2="21"/><line x1="50" y1="50" x2="33" y2="79"/></g></svg>
+      <div class="spin"></div>
+      <h1 id="loadTitle">Starting your Ubuntu instance</h1>
+      <div class="st" id="status">loading…</div>
+      <div class="bar"><i id="prog"></i></div>
+    </div>
+  </div>
+
+  <div class="leave-scrim" id="leaveScrim">
+    <div class="leave-box">
+      <h2>Leave this instance?</h2>
+      <p>You have unsaved changes. Save them so they survive a reload, or leave without saving?</p>
+      <label class="leave-optout"><input type="checkbox" id="leaveOptout"> Don’t ask again on this device</label>
+      <div class="leave-actions">
+        <button class="lb ghost" id="leaveCancel">Cancel</button>
+        <button class="lb" id="leaveDiscard">Leave without saving</button>
+        <button class="lb primary" id="leaveSave">Save &amp; leave</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ctxmenu" id="ctxmenu">
+    <div class="mi" data-a="copy">Copy<span class="sc">Ctrl+C</span></div>
+    <div class="mi" data-a="paste">Paste<span class="sc">Ctrl+Shift+V</span></div>
+    <div class="sep"></div>
+    <div class="mi" data-a="selall">Select All<span class="sc">Ctrl+Shift+A</span></div>
+    <div class="mi" data-a="clear">Clear</div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script src="./load.js"></script>
+  <script type="module">
+    import 'https://unpkg.com/xterm@5.3.0/lib/xterm.js';
+    import 'https://unpkg.com/xterm-pty/index.js';
+    import 'https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js';
+    import './uvm-arg.js';
+    import initEmscriptenModule from './out.js';
+
+    const params = new URLSearchParams(location.search);
+    const vmName = (params.get('name') || 'Ubuntu 22.04 LTS').slice(0, 48);
+    // Full-disk persistence: each instance gets its own qcow2 in OPFS, keyed by id.
+    // Present -> load it and `-loadvm session`. Absent -> shipped base + `-loadvm booted`.
+    const instanceId = params.get('instance') || '';
+    const OPFS_NAME = instanceId ? ('inst-' + instanceId + '.qcow2') : '';
+    async function opfsHandle(create){ const d = await navigator.storage.getDirectory(); return d.getFileHandle(OPFS_NAME, { create }); }
+    async function opfsExists(){ if(!OPFS_NAME) return false; try { await opfsHandle(false); return true; } catch { return false; } }
+    document.getElementById('vmName').textContent = vmName;
+    document.getElementById('ttitle').textContent = 'root@ubuntu-wasm: ~';
+    document.getElementById('loadTitle').textContent = 'Starting “' + vmName + '”';
+    document.getElementById('backBtn').onclick = () => { location.href = '/instances/'; };
+    document.getElementById('clsBtn').onclick = () => { location.href = '/instances/'; };
+
+    // networking status (read-only). window.__NET_ON comes from uvm-arg.js / the ?net= pref.
+    // Change it per-instance from the ⋮ menu → Edit on the Instances page.
+    (function(){
+      const b = document.getElementById('netBtn'), l = document.getElementById('netLbl'), on = !!window.__NET_ON;
+      b.classList.add(on ? 'on' : 'off');
+      l.textContent = on ? 'Online' : 'Offline';
+      b.title = 'Networking is ' + (on ? 'on' : 'off') + ' — change it from the instance’s ⋮ menu → Edit';
+    })();
+
+    const el = (id) => document.getElementById(id);
+    const status = (m) => { el('status').textContent = m; };
+    const prog = (p) => { el('prog').style.width = p + '%'; };
+    const clk = () => el('clk').textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    clk(); setInterval(clk, 10000);
+
+    // Ubuntu terminal look: aubergine bg + the classic Tango/Ubuntu ANSI palette.
+    const xterm = new Terminal({
+      convertEol: true, fontSize: 15, fontFamily: '"Ubuntu Mono", ui-monospace, monospace',
+      lineHeight: 1.18, letterSpacing: 0.3, cursorBlink: true, cursorStyle: 'bar',
+      allowProposedApi: true, allowTransparency: true, scrollback: 4000,
+      theme: {
+        background: 'rgba(40,8,30,0.80)', foreground: '#EEEEEC', cursor: '#E95420', cursorAccent: '#300A24',
+        selectionBackground: 'rgba(233,132,80,.32)',
+        black:'#2E3436', red:'#CC0000', green:'#4E9A06', yellow:'#C4A000', blue:'#3465A4',
+        magenta:'#75507B', cyan:'#06989A', white:'#D3D7CF', brightBlack:'#555753',
+        brightRed:'#EF2929', brightGreen:'#8AE234', brightYellow:'#FCE94F', brightBlue:'#729FCF',
+        brightMagenta:'#AD7FA8', brightCyan:'#34E2E2', brightWhite:'#EEEEEC',
+      },
+    });
+    xterm.open(el('terminal'));
+    // debug/verification hook: read the terminal buffer as text without a screenshot
+    // (the WASM VM pegs the main thread, so screenshots are unreliable during activity)
+    window.__term = xterm;
+    window.__dumpTerm = (n = 48) => {
+      const b = xterm.buffer.active, end = b.baseY + xterm.rows, out = [];
+      for (let y = Math.max(0, end - n); y < end; y++) {
+        const ln = b.getLine(y); out.push(ln ? ln.translateToString(true).replace(/\s+$/, '') : '');
+      }
+      return out.join('\n').replace(/\n{3,}/g, '\n\n');
+    };
+    const fit = new FitAddon.FitAddon();
+    xterm.loadAddon(fit);
+    const doFit = () => { try { fit.fit(); } catch (e) {} };
+    // fit once fonts are ready (cell metrics depend on the font), then on resize
+    (document.fonts?.ready || Promise.resolve()).then(() => { doFit(); setTimeout(doFit, 120); });
+    addEventListener('resize', doFit);
+
+    /* ---------- clipboard: GNOME-Terminal-style copy & paste ---------- */
+    const termEl = el('terminal'), ctx = el('ctxmenu');
+    let toastTm;
+    const toast = (msg) => {
+      const t = el('toast');
+      t.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.2l-3.5-3.5L4 14.2 9 19l11-11-1.4-1.4z"/></svg>' + msg;
+      t.classList.add('show'); clearTimeout(toastTm); toastTm = setTimeout(() => t.classList.remove('show'), 1200);
+    };
+    async function copySel(){
+      const s = xterm.getSelection(); if (!s) return false;
+      try { await navigator.clipboard.writeText(s); }
+      catch {
+        const ta = document.createElement('textarea'); ta.value = s;
+        ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta);
+        ta.select(); try { document.execCommand('copy'); } catch {} ta.remove();
+      }
+      xterm.clearSelection();          // so a stale selection can't block Ctrl+C = SIGINT
+      toast('Copied'); xterm.focus(); return true;
+    }
+    async function pasteClip(){
+      try { const t = await navigator.clipboard.readText(); if (t) xterm.paste(t); }
+      catch { toast('Allow clipboard access to paste'); }
+      xterm.focus();
+    }
+    // Key handling. Ctrl+Shift+C is reserved by Chrome/extensions and never reaches
+    // the page, so the reliable copy is "Ctrl+C when text is selected" (SIGINT
+    // otherwise), plus classic Ctrl+Insert / Shift+Insert. Ctrl+Shift+C/V kept as
+    // best-effort for setups where the browser doesn't grab them.
+    xterm.attachCustomKeyEventHandler((e) => {
+      if (e.type !== 'keydown') return true;
+      const k = e.key.toLowerCase();
+      // Ctrl+C: copy the selection if there is one; otherwise pass ^C through (SIGINT)
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && k === 'c') {
+        if (xterm.getSelection()) { copySel(); e.preventDefault(); return false; }
+        return true;
+      }
+      // classic terminal clipboard keys — never intercepted by the browser
+      if (e.key === 'Insert' && e.ctrlKey)  { copySel();  e.preventDefault(); return false; }
+      if (e.key === 'Insert' && e.shiftKey) { pasteClip(); e.preventDefault(); return false; }
+      // GNOME-style (best effort)
+      if (e.ctrlKey && e.shiftKey) {
+        if (k === 'c') { copySel();  e.preventDefault(); return false; }
+        if (k === 'v') { pasteClip(); e.preventDefault(); return false; }
+        if (k === 'a') { xterm.selectAll(); e.preventDefault(); return false; }
+      }
+      return true;
+    });
+    // middle-click paste (X11 style)
+    termEl.addEventListener('mousedown', (e) => { if (e.button === 1) { e.preventDefault(); pasteClip(); } });
+    // right-click context menu
+    const hideCtx = () => ctx.classList.remove('show');
+    termEl.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      ctx.querySelector('[data-a="copy"]').classList.toggle('dis', !xterm.getSelection());
+      ctx.style.left = Math.min(e.clientX, innerWidth - 202) + 'px';
+      ctx.style.top  = Math.min(e.clientY, innerHeight - 150) + 'px';
+      ctx.classList.add('show');
+    });
+    ctx.addEventListener('click', (e) => {
+      const mi = e.target.closest('.mi'); if (!mi) return; hideCtx();
+      ({ copy: copySel, paste: pasteClip, selall: () => xterm.selectAll(), clear: () => xterm.clear() }[mi.dataset.a] || (()=>{}))();
+      if (mi.dataset.a !== 'copy' && mi.dataset.a !== 'paste') xterm.focus();
+    });
+    addEventListener('mousedown', (e) => { if (!ctx.contains(e.target)) hideCtx(); });
+    addEventListener('blur', hideCtx);
+    window.addEventListener('scroll', hideCtx, true);
+
+    const { master, slave } = openpty();
+    xterm.loadAddon(master);
+    Module.pty = slave;
+    Module['mainScriptUrlOrBlob'] = new URL('./out.js', import.meta.url).href;
+    window.Module = Module;
+    window.sendCmd = (s) => Module.pty.ldisc.writeFromLower(Array.from(new TextEncoder().encode(s)));
+
+    (async () => {
+      const fetchBytes = async (u, label, base) => {
+        status('fetching ' + label + '…');
+        const r = await fetch(u);
+        if (!r.ok) throw new Error(u + ' -> ' + r.status);
+        return new Uint8Array(await r.arrayBuffer());
+      };
+      prog(8);
+      const vmlinuz = await fetchBytes('./vmlinuz', 'kernel');            prog(16);
+      const initrd  = await fetchBytes('./initrd.img', 'initrd');         prog(24);
+
+      // choose disk source: a previously-saved session (OPFS) or the shipped base
+      let qcow2, freshBoot;
+      if (await opfsExists()) {
+        status('loading your saved session…');
+        const f = await (await opfsHandle(false)).getFile();
+        qcow2 = new Uint8Array(await f.arrayBuffer());        // full per-instance disk
+        freshBoot = false;                                    // resume via -loadvm session
+        prog(72);
+      } else {
+        status('downloading pre-booted Ubuntu (~350 MB)…');
+        qcow2 = await fetchBytes('./jammy-min.snap.qcow2', 'disk');
+        freshBoot = true;                                     // first boot: -loadvm booted
+        prog(72);
+      }
+
+      // point -loadvm at the right snapshot (uvm-arg.js prepared it as 'booted')
+      { const a = Module['arguments'], i = a.indexOf('-loadvm'); if (i >= 0) a[i + 1] = freshBoot ? 'booted' : 'session'; }
+
+      status('restoring the running system…');
+      Module['preRun'] = Module['preRun'] || [];
+      Module['preRun'].push((mod) => {
+        mod.FS.writeFile('/vmlinuz', vmlinuz);
+        mod.FS.writeFile('/initrd.img', initrd);
+        mod.FS.writeFile('/jammy-min.qcow2', qcow2);
+      });
+      prog(84);
+      await initEmscriptenModule(Module);
+      prog(100);
+
+      // wire pty read-polling (official qemu-wasm pattern)
+      const oldPoll = Module['TTY'].stream_ops.poll;
+      const pty = Module['pty'];
+      Module['TTY'].stream_ops.poll = function (stream, timeout) {
+        if (!pty.readable) return (pty.readable ? 1 : 0) | (pty.writable ? 4 : 0);
+        return oldPoll.call(this, stream, timeout);
+      };
+
+      // Reveal. A FRESH boot restores mid-prompt (idle shell), so we can safely nudge a
+      // newline and reconcile networking (up when online; tear a stale lease down when
+      // offline) while the "Starting…" screen is still up. A RESTORED session could be
+      // anywhere (an editor, a running program), so we must NOT inject commands — only
+      // redraw and reveal. Always bounded so a slow step can't strand the loading screen.
+      setTimeout(async () => {
+        const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        if (freshBoot) {
+          window.sendCmd('\n');
+          await wait(400);                 // let the prompt settle before typing
+          // One-time: shrink the eager CA *bundle* so TLS handshakes don't spend ~3s parsing
+          // ~140 root certs on the slow CPU. Full trust is preserved — curl/openssl still
+          // validate against the hashed /etc/ssl/certs CApath (all roots, loaded lazily).
+          // Runs while the loading screen is up, so it never clutters the terminal.
+          status('optimizing…');
+          window.sendCmd("[ -e /etc/ssl/certs/.cafast ] || { cp /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt.full 2>/dev/null && awk '/-----BEGIN CERTIFICATE-----/{n++} n<=10' /etc/ssl/certs/ca-certificates.crt.full > /etc/ssl/certs/ca-certificates.crt && touch /etc/ssl/certs/.cafast; }\n");
+          await wait(900);
+          if (window.__NET_ON) {
+            status('connecting to the network…');
+            window.sendCmd('net-up\n');
+            await wait(2200);              // give DHCP a moment to lease an address
+          } else {
+            status('going offline…');
+            window.sendCmd('ip addr flush dev eth0; ip link set eth0 down; echo "eth0 down — offline"\n');
+            await wait(700);
+          }
+        } else {
+          // Restored session. Redraw first (Ctrl-L is safe anywhere). Then reconcile the
+          // network to the CURRENT on/off setting — but only if we can see we're sitting at
+          // an idle shell prompt. If the saved session was inside an editor or a running
+          // program, injecting commands would corrupt it, so we leave it untouched.
+          status('resuming your session…');
+          window.sendCmd('\x0c');                            // ask the shell to redraw its prompt
+          const lastLine = () => {
+            const bb = xterm.buffer.active;
+            for (let y = bb.baseY + xterm.rows - 1; y >= 0; y--) {
+              const ln = bb.getLine(y); const s = ln ? ln.translateToString(true).replace(/\s+$/, '') : '';
+              if (s) return s;
+            }
+            return '';
+          };
+          // Poll for the redrawn prompt (the guest is CPU-busy right after loadvm, so it can
+          // take a couple of seconds). If it appears we're safely at an idle shell -> reconcile.
+          // If it never appears within the budget, assume an editor/program and leave it alone.
+          let atPrompt = false;
+          for (let i = 0; i < 12; i++) {
+            await wait(300);
+            if (/@ubuntu-wasm:.*[#$]\s*$/.test(lastLine())) { atPrompt = true; break; }
+          }
+          if (atPrompt) {
+            if (window.__NET_ON) {
+              status('reconnecting to the network…');
+              window.sendCmd('net-up\n'); await wait(1800);
+            } else {
+              status('going offline…');
+              window.sendCmd('ip addr flush dev eth0; ip link set eth0 down\n'); await wait(700);
+            }
+          }
+        }
+        el('load').classList.add('hide');
+        doFit(); xterm.focus();
+      }, 650);
+    })().catch((e) => {
+      el('loadTitle').textContent = 'Something went wrong';
+      status(e.message); console.error(e);
+      el('load').querySelector('.spin').style.display = 'none';
+    });
+
+    /* ---------- persistence: savevm session -> OPFS (full-disk per instance) ---------- */
+    (function persistence(){
+      const saveBtn = el('saveBtn'), saveLbl = el('saveLbl');
+      if (!OPFS_NAME) { saveBtn.style.display = 'none'; return; }   // direct/ephemeral session — nothing to persist to
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      const monText = () => { const b = window.__term.buffer.active; let s = ''; for (let y = 0; y < b.length; y++){ const ln = b.getLine(y); s += (ln ? ln.translateToString(true) : '') + '\n'; } return s; };
+      const qCount = () => (monText().match(/\(qemu\)/g) || []).length;
+      const waitFor = (pred, timeout, iv) => new Promise((res, rej) => {
+        const t0 = Date.now(), t = setInterval(() => {
+          let ok = false; try { ok = pred(); } catch {}
+          if (ok) { clearInterval(t); res(); }
+          else if (Date.now() - t0 > timeout) { clearInterval(t); rej(new Error('timed out')); }
+        }, iv || 250);
+      });
+      async function streamToOPFS(){
+        const FS = window.Module.FS, path = '/jammy-min.qcow2';
+        const total = FS.stat(path).size, s = FS.open(path, 'r');
+        const w = await (await opfsHandle(true)).createWritable();
+        const CH = 32 * 1024 * 1024, buf = new Uint8Array(CH); let off = 0;
+        try { while (off < total) { const n = Math.min(CH, total - off); const got = FS.read(s, buf, 0, n, off); await w.write(got === CH ? buf : buf.subarray(0, got)); off += got; if (!got) break; } }
+        finally { await w.close(); FS.close(s); }
+        return off;
+      }
+      function markPersisted(){
+        try { const K = 'ubuntu_instances_v1', l = JSON.parse(localStorage.getItem(K) || '[]'); const it = l.find(x => x.id === instanceId);
+          if (it) { it.persisted = true; it.savedAt = Date.now(); localStorage.setItem(K, JSON.stringify(l)); } } catch {}
+      }
+      const setBtn = (cls, txt) => { saveBtn.className = 'savebtn' + (cls ? ' ' + cls : ''); saveLbl.textContent = txt; };
+      let saving = false, dirty = false, lastInput = 0;
+      async function save(){
+        if (saving) return; saving = true; setBtn('busy', 'Saving…');
+        try {
+          window.sendCmd('\x01c'); await sleep(450);                 // switch console -> HMP monitor
+          const before = qCount();
+          window.sendCmd('savevm session\n');                        // consistent RAM+disk snapshot (overwrites)
+          await waitFor(() => qCount() > before, 180000);            // wait for the monitor prompt to return
+          const out = monText(), tail = out.slice(out.lastIndexOf('savevm session'));
+          window.sendCmd('\x01c'); await sleep(300);                 // switch back to console
+          if (/error|failed|not found|no space/i.test(tail)) throw new Error('savevm rejected');
+          setBtn('busy', 'Writing…');
+          await streamToOPFS();                                      // MEMFS qcow2 -> OPFS (per-instance)
+          markPersisted();
+          dirty = false;                                             // changes are now on disk
+          setBtn('saved', 'Saved ✓');
+          setTimeout(() => { if (!saving) setBtn('', 'Save'); }, 4000);
+        } catch (e) {
+          console.error('[persist] save failed:', e); setBtn('', 'Save failed');
+          setTimeout(() => { if (!saving) setBtn('', 'Save'); }, 4000);
+        } finally { saving = false; }
+      }
+      saveBtn.onclick = save;
+
+      /* mark "dirty" on genuine user input. xterm.onData fires only for typed/pasted input;
+         our programmatic sendCmd() goes through the pty's lower side and never triggers it. */
+      try { window.__term.onData(() => { dirty = true; lastInput = Date.now(); }); } catch {}
+
+      /* periodic autosave — only when there are unsaved changes, the tab is visible, and the
+         user has paused typing, so it never interrupts an active command or saves needlessly.
+         Interval (minutes) overridable via localStorage 'ubuntu_autosave_min'. */
+      const AUTOSAVE_MS = (parseInt(localStorage.getItem('ubuntu_autosave_min'), 10) || 2) * 60000;
+      setInterval(() => {
+        if (!dirty || saving) return;                // nothing changed, or a save is already running
+        if (Date.now() - lastInput < 6000) return;   // don't cut into active typing
+        save();                                      // runs in fore- or background (protects work either way)
+      }, AUTOSAVE_MS);
+
+      /* leave guard — warn about unsaved changes on exit. Opt-out-able via "Don't ask again". */
+      const guardOff = () => localStorage.getItem('ubuntu_leave_guard') === 'off';
+      let leaving = false;
+      // real tab close / refresh: native "Leave site?" prompt (browsers show a generic dialog)
+      addEventListener('beforeunload', (e) => { if (dirty && !guardOff() && !leaving) { e.preventDefault(); e.returnValue = ''; } });
+      // in-app Back/Close: richer modal offering Save & leave / Leave / Cancel
+      const leaveScrim = el('leaveScrim'), leaveOptout = el('leaveOptout');
+      let pendingDest = '/instances/';
+      const applyOptout = () => { if (leaveOptout.checked) localStorage.setItem('ubuntu_leave_guard', 'off'); };
+      function guardedLeave(dest){
+        if (!dirty || guardOff()) { location.href = dest; return; }
+        pendingDest = dest; leaveOptout.checked = false; leaveScrim.classList.add('show');
+      }
+      el('leaveCancel').onclick  = () => leaveScrim.classList.remove('show');
+      el('leaveDiscard').onclick = () => { applyOptout(); leaving = true; location.href = pendingDest; };
+      el('leaveSave').onclick    = async () => { applyOptout(); leaveScrim.classList.remove('show'); await save(); leaving = true; location.href = pendingDest; };
+      leaveScrim.addEventListener('click', (e) => { if (e.target === leaveScrim) leaveScrim.classList.remove('show'); });
+      el('backBtn').onclick = () => guardedLeave('/instances/');
+      el('clsBtn').onclick  = () => guardedLeave('/instances/');
+    })();
+  </script>
+</body>
+</html>

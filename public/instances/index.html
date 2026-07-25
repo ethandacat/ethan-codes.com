@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ubuntu Instances</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --orange:#E95420; --orange-d:#c7431a;
+    --aubergine:#2C001E; --purple:#77216F; --plum:#5E2750;
+    --yaru-bg:#f5f4f2; --yaru-card:#ffffff; --yaru-ink:#3d3d3d; --yaru-dim:#8a877f;
+    --yaru-line:#e6e3df; --green:#0e8420;
+    --dock:rgba(28,20,26,.62);
+    --font:'Ubuntu',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --mono:'Ubuntu Mono',ui-monospace,'Cascadia Code',Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--font); color:var(--yaru-ink); overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 78% 108%, rgba(233,84,32,.42) 0%, rgba(233,84,32,0) 46%),
+      radial-gradient(90% 80% at 20% -10%, rgba(119,33,111,.55) 0%, rgba(119,33,111,0) 55%),
+      linear-gradient(150deg, #3a0b2c 0%, #2c001e 42%, #1c0413 100%);
+    -webkit-font-smoothing:antialiased;
+  }
+  /* faint Ubuntu "circle of friends" rings on the wallpaper */
+  .wall-rings{position:fixed;inset:0;pointer-events:none;opacity:.06;display:grid;place-items:center}
+  .wall-rings svg{width:min(70vw,720px);height:auto}
+
+  /* ---------- GNOME top bar ---------- */
+  .topbar{
+    position:fixed;top:0;left:0;right:0;height:28px;z-index:40;
+    background:rgba(0,0,0,.82); color:#fff; display:flex; align-items:center;
+    padding:0 10px; font-size:13px; font-weight:500;
+    box-shadow:0 1px 0 rgba(0,0,0,.3);
+  }
+  .topbar .activities{padding:2px 9px;border-radius:6px;cursor:default}
+  .topbar .activities:hover{background:rgba(255,255,255,.14)}
+  .topbar .clock{position:absolute;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;font-weight:500}
+  .topbar .tray{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .topbar .tray svg{width:15px;height:15px;display:block;fill:#fff;opacity:.92}
+  .topbar .tray .grp{display:flex;gap:7px;align-items:center;padding:2px 8px;border-radius:6px}
+  .topbar .tray .grp:hover{background:rgba(255,255,255,.14)}
+
+  /* ---------- Ubuntu dock ---------- */
+  .dock{
+    position:fixed;left:8px;top:50%;transform:translateY(-50%);z-index:35;
+    background:var(--dock);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+    border:1px solid rgba(255,255,255,.10);border-radius:16px;
+    padding:8px 7px;display:flex;flex-direction:column;gap:9px;align-items:center;
+    box-shadow:0 10px 40px rgba(0,0,0,.4);
+  }
+  .dock .app{position:relative;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;cursor:pointer;
+    transition:transform .12s ease; box-shadow:0 2px 6px rgba(0,0,0,.25)}
+  .dock .app:hover{transform:scale(1.09)}
+  .dock .app svg,.dock .app .glyph{width:30px;height:30px}
+  .dock .app.active::before{content:"";position:absolute;left:-6px;top:50%;transform:translateY(-50%);
+    width:4px;height:22px;border-radius:3px;background:var(--orange)}
+  .dock .sep{width:30px;height:1px;background:rgba(255,255,255,.16);margin:1px 0}
+  .dock .tip{position:absolute;left:56px;top:50%;transform:translateY(-50%);white-space:nowrap;
+    background:rgba(0,0,0,.85);color:#fff;font-size:12px;padding:4px 9px;border-radius:7px;opacity:0;pointer-events:none;transition:opacity .12s}
+  .dock .app:hover .tip{opacity:1}
+
+  /* ---------- Boxes-style window ---------- */
+  /* fullscreen (maximized) app filling everything below the top bar */
+  .desktop{position:fixed;inset:28px 0 0 0;z-index:10}
+  .win{
+    position:absolute;inset:0;
+    background:var(--yaru-bg);overflow:hidden;
+    display:flex;flex-direction:column;
+    animation:fade .25s ease both;
+  }
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes pop{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+  .titlebar{
+    height:46px;flex:none;display:flex;align-items:center;gap:10px;padding:0 10px 0 14px;
+    background:linear-gradient(#fbfbfa,#efedea);border-bottom:1px solid var(--yaru-line);
+  }
+  .titlebar .newbtn{
+    display:flex;align-items:center;gap:7px;background:var(--orange);color:#fff;border:0;
+    font-family:var(--font);font-weight:500;font-size:13.5px;padding:7px 13px;border-radius:8px;cursor:pointer;
+    box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  .titlebar .newbtn:hover{background:var(--orange-d)}
+  .titlebar .newbtn svg{width:15px;height:15px;fill:#fff}
+  .titlebar .title{position:absolute;left:50%;transform:translateX(-50%);font-weight:700;font-size:14px;color:#43403c;letter-spacing:.2px}
+  .titlebar .wctl{margin-left:auto;display:flex;gap:9px}
+  .titlebar .wc{width:23px;height:23px;border-radius:50%;display:grid;place-items:center;background:#e2dfda;cursor:pointer;color:#5c5852}
+  .titlebar .wc:hover{background:#d5d1cb}
+  .titlebar .wc svg{width:11px;height:11px;fill:currentColor}
+
+  .body{flex:1;overflow:auto;padding:28px 46px 36px}
+  .appfoot{margin-top:34px;display:flex;gap:10px;align-items:center;font-size:12.5px;color:#9a938f}
+  .appfoot span{}
+  .appfoot .dotsep{opacity:.6}
+  .appfoot a{color:#9a938f;text-decoration:none}
+  .appfoot a:hover{color:var(--orange);text-decoration:underline}
+  .appfoot a.patreon-link{color:#FF424D;font-weight:500}
+  .appfoot a.patreon-link:hover{color:#e23b45}
+  .body::-webkit-scrollbar{width:11px}
+  .body::-webkit-scrollbar-thumb{background:#cfccc6;border-radius:8px;border:3px solid var(--yaru-bg)}
+  .subhead{display:flex;align-items:baseline;gap:10px;margin:2px 2px 18px}
+  .subhead h2{font-size:15px;font-weight:700;color:#4a463f}
+  .subhead .count{font-size:12.5px;color:var(--yaru-dim)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:18px}
+
+  .card{background:var(--yaru-card);border:1px solid var(--yaru-line);border-radius:12px;overflow:hidden;cursor:pointer;
+    transition:box-shadow .14s,transform .14s,border-color .14s;position:relative}
+  .card:hover{box-shadow:0 10px 26px rgba(44,0,30,.14);transform:translateY(-2px);border-color:#dcd8d2}
+  .thumb{height:118px;position:relative;overflow:hidden;background:linear-gradient(150deg,#3d0a2e,#2c001e);}
+  .thumb .term{position:absolute;inset:0;padding:11px 12px;font-family:var(--mono);font-size:10.5px;line-height:1.5;color:#e6e2df}
+  .thumb .term .p{color:#8ae234}.thumb .term .d{color:#c9a0dc}.thumb .term .cur{background:#e6e2df;color:transparent;animation:blink 1.1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .thumb .run{position:absolute;bottom:9px;right:9px;display:flex;align-items:center;gap:5px;font-family:var(--font);
+    font-size:10.5px;font-weight:500;color:#fff;background:rgba(20,4,14,.82);padding:3px 9px;border-radius:20px;
+    box-shadow:0 1px 4px rgba(0,0,0,.35)}
+  .thumb .dot{width:7px;height:7px;border-radius:50%;background:#8a877f;box-shadow:0 0 0 0 rgba(0,0,0,0)}
+  .card.on .thumb .dot{background:#2ec27e;box-shadow:0 0 7px #2ec27e}
+  .play{position:absolute;inset:0;display:grid;place-items:center;background:rgba(20,4,14,.32);opacity:0;transition:opacity .14s}
+  .card:hover .play{opacity:1}
+  .play .pbtn{width:54px;height:54px;border-radius:50%;background:var(--orange);display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+  .play .pbtn svg{width:22px;height:22px;fill:#fff;margin-left:3px}
+  .meta{padding:12px 13px 14px;display:flex;gap:11px;align-items:flex-start}
+  .meta .ico{width:30px;height:30px;flex:none;margin-top:1px}
+  .meta .txt{min-width:0;line-height:1.36}
+  .meta .nm{font-weight:500;font-size:14px;color:#3d3936;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .meta .sb{font-size:11.5px;color:var(--yaru-dim)}
+  .meta .sb2{font-size:11.5px;color:var(--yaru-dim)}
+  /* per-card three-dots (kebab) button + dropdown */
+  .kebab{position:absolute;top:8px;right:8px;width:30px;height:30px;border:0;border-radius:8px;padding:0;
+    background:rgba(0,0,0,.42);display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .14s;z-index:3}
+  .card:hover .kebab,.kebab.open{opacity:1}
+  .kebab:hover,.kebab.open{background:rgba(0,0,0,.66)}
+  .kebab svg{width:17px;height:17px;fill:#fff}
+  .cardmenu{position:fixed;z-index:55;min-width:160px;background:#faf9f7;border:1px solid #dcd8d2;border-radius:9px;
+    box-shadow:0 12px 32px rgba(0,0,0,.3);padding:6px;display:none;font-family:var(--font);font-size:13.5px;color:#3d3936}
+  .cardmenu.show{display:block;animation:mpop .12s ease both}
+  @keyframes mpop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .cardmenu .cmi{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:6px;cursor:pointer}
+  .cardmenu .cmi:hover{background:var(--orange);color:#fff}
+  .cardmenu .cmi.danger{color:#c0392b}
+  .cardmenu .cmi.danger:hover{background:#c0392b;color:#fff}
+  .cardmenu .cmi svg{width:16px;height:16px;fill:currentColor}
+  .cardmenu .sep{height:1px;background:#e6e3df;margin:5px 4px}
+
+  .newcard{border:2px dashed #cdc8c1;background:transparent;border-radius:12px;min-height:191px;display:grid;place-items:center;
+    text-align:center;cursor:pointer;transition:.14s;color:var(--yaru-dim)}
+  .newcard:hover{border-color:var(--orange);color:var(--orange);background:rgba(233,84,32,.04)}
+  .newcard .plus{width:46px;height:46px;border-radius:50%;border:2px solid currentColor;display:grid;place-items:center;margin:0 auto 10px}
+  .newcard .plus svg{width:22px;height:22px;fill:currentColor}
+  .newcard span{font-size:13.5px;font-weight:500}
+
+  /* ---------- modal ---------- */
+  .scrim{position:fixed;inset:0;background:rgba(10,2,7,.5);z-index:60;display:none;place-items:center;backdrop-filter:blur(2px)}
+  .scrim.show{display:grid}
+  .modal{width:380px;max-width:90vw;background:#fff;border-radius:12px;box-shadow:0 30px 80px rgba(0,0,0,.5);overflow:hidden;
+    animation:pop .2s ease both}
+  .modal h3{font-size:15px;font-weight:700;padding:16px 18px;border-bottom:1px solid var(--yaru-line);color:#43403c}
+  .modal .mbody{padding:18px}
+  .modal .mtext{font-size:13.5px;color:#5c5852;line-height:1.5}
+  .modal label{display:block;font-size:12.5px;color:var(--yaru-dim);margin-bottom:6px}
+  .modal input{width:100%;font-family:var(--font);font-size:14px;padding:9px 11px;border:1px solid #d7d3cd;border-radius:8px;outline:none;color:#3d3936}
+  .modal input:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(233,84,32,.15)}
+  .swatches{display:flex;gap:9px;margin-top:14px}
+  .sw{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent}
+  .sw.sel{border-color:#3d3936;transform:scale(1.08)}
+  .mfoot{display:flex;justify-content:flex-end;gap:9px;padding:14px 18px;background:#faf9f7;border-top:1px solid var(--yaru-line)}
+  .btn{font-family:var(--font);font-weight:500;font-size:13.5px;padding:8px 15px;border-radius:8px;border:1px solid #d7d3cd;background:#fff;color:#43403c;cursor:pointer}
+  .btn:hover{background:#f2f0ed}
+  .btn.primary{background:var(--orange);border-color:var(--orange);color:#fff}
+  .btn.primary:hover{background:var(--orange-d)}
+  .btn.danger{background:#c0392b;border-color:#c0392b;color:#fff}
+  /* networking toggle inside the edit modal */
+  .netrow{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:18px;padding-top:16px;border-top:1px solid var(--yaru-line)}
+  .netrow .nl{font-size:13.5px;color:#43403c;font-weight:500}
+  .netrow .nl small{display:block;font-size:11.5px;color:var(--yaru-dim);font-weight:400;margin-top:3px;line-height:1.4}
+  .switch{position:relative;width:44px;height:26px;flex:none;cursor:pointer}
+  .switch input{position:absolute;opacity:0;width:0;height:0}
+  .switch .sl{position:absolute;inset:0;background:#cfccc6;border-radius:20px;transition:.16s}
+  .switch .sl::before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.16s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .switch input:checked + .sl{background:var(--green)}
+  .switch input:checked + .sl::before{transform:translateX(18px)}
+  .meta .sb2 .neton{color:var(--green);font-weight:500}
+  .meta .sb2 .saved{color:var(--green);font-weight:500}
+
+  @media (max-width:560px){.dock{display:none}.win{width:94vw;height:86vh}}
+</style>
+</head>
+<body>
+  <div class="wall-rings">
+    <!-- Ubuntu circle-of-friends, faint watermark -->
+    <svg viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke="#fff" stroke-width="7">
+      <circle cx="100" cy="100" r="74"/></g><g fill="#fff">
+      <circle cx="176" cy="100" r="15"/><circle cx="62" cy="34" r="15"/><circle cx="62" cy="166" r="15"/></g>
+      <g stroke="#fff" stroke-width="7"><line x1="100" y1="100" x2="176" y2="100"/>
+      <line x1="100" y1="100" x2="62" y2="34"/><line x1="100" y1="100" x2="62" y2="166"/></g>
+    </svg>
+  </div>
+
+  <!-- top bar -->
+  <div class="topbar">
+    <span class="activities" id="backBtn"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:#fff;vertical-align:-2px;margin-right:2px"><path d="M15 5l-7 7 7 7 1.4-1.4L10.8 12l5.6-5.6z"/></svg>Back</span>
+    <div class="clock"><span id="clk-day"></span><span id="clk-time"></span></div>
+    <div class="tray">
+      <div class="grp">
+        <svg viewBox="0 0 24 24"><path d="M12 3C7 3 2.7 5 0 8l2 2c2.3-2.3 6-4 10-4s7.7 1.7 10 4l2-2C21.3 5 17 3 12 3zm0 6c-3 0-5.7 1.2-7.6 3.1l2 2C7.8 12.8 9.8 12 12 12s4.2.8 5.6 2.1l2-2C17.7 10.2 15 9 12 9zm0 6c-1.4 0-2.7.5-3.6 1.4L12 20l3.6-3.6C14.7 15.5 13.4 15 12 15z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 5V4L8 9H4zm12 3a4 4 0 00-2-3.5v7A4 4 0 0016 12z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M15 8V6H4v12h11v-2h2v3a1 1 0 01-1 1H3a1 1 0 01-1-1V5a1 1 0 011-1h13a1 1 0 011 1v3h-2zm2 2h3l-1-1 2-2-2-2 1-1h-4v6z" transform="rotate(0)"/><rect x="6" y="10" width="12" height="5" rx="1"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- window -->
+  <div class="desktop">
+    <div class="win">
+      <div class="titlebar">
+        <button class="newbtn" id="newBtn"><svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>New Instance</button>
+        <div class="title">Instances</div>
+        <div class="wctl">
+          <div class="wc" title="Minimize"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="2"/></svg></div>
+          <div class="wc" title="Maximize"><svg viewBox="0 0 24 24"><path d="M5 5h14v14H5V5zm2 2v10h10V7H7z"/></svg></div>
+          <div class="wc" title="Close"><svg viewBox="0 0 24 24"><path d="M6 5l6 6 6-6 1 1-6 6 6 6-1 1-6-6-6 6-1-1 6-6-6-6z"/></svg></div>
+        </div>
+      </div>
+      <div class="body">
+        <div class="subhead"><h2>Your Ubuntu instances</h2><span class="count" id="count"></span></div>
+        <div class="grid" id="grid"></div>
+        <div class="appfoot">
+          <span>Everything runs in your browser.</span>
+          <a href="/privacy/">Privacy</a><span class="dotsep">·</span><a href="/terms/">Terms</a><span class="dotsep">·</span><a class="patreon-link" href="https://www.patreon.com/c/ethandacat" target="_blank" rel="noopener">♥ Patreon</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- new/edit modal -->
+  <div class="scrim" id="scrim">
+    <div class="modal">
+      <h3 id="mTitle"></h3>
+      <div class="mbody" id="mBody"></div>
+      <div class="mfoot" id="mFoot"></div>
+    </div>
+  </div>
+
+  <div class="cardmenu" id="cardmenu">
+    <div class="cmi" data-m="open"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Open</div>
+    <div class="cmi" data-m="edit"><svg viewBox="0 0 24 24"><path d="M4 20h4L18 10l-4-4L4 16v4zM17 3l4 4-2 2-4-4 2-2z"/></svg>Edit</div>
+    <div class="cmi" data-m="reset"><svg viewBox="0 0 24 24"><path d="M12 5V2L7 7l5 5V8a5 5 0 11-5 5H5a7 7 0 107-8z"/></svg>Reset to fresh</div>
+    <div class="sep"></div>
+    <div class="cmi danger" data-m="del"><svg viewBox="0 0 24 24"><path d="M9 3h6l1 2h4v2H4V5h4zM6 9h12l-1 12H7z"/></svg>Delete</div>
+  </div>
+
+<script>
+const STORE='ubuntu_instances_v1';
+const RUNNER='/vm-fb/uvm.html';                 // absolute: works from /instances/
+const ACCENTS=['#E95420','#77216F','#0e8420','#2472c8','#c0392b','#d98e04'];
+
+const $=s=>document.querySelector(s);
+const load=()=>{try{return JSON.parse(localStorage.getItem(STORE))||[]}catch{return[]}};
+const save=a=>localStorage.setItem(STORE,JSON.stringify(a));
+const uid=()=>'i'+Math.random().toString(36).slice(2,9);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=ts=>{const d=new Date(ts),n=new Date();const sameDay=d.toDateString()===n.toDateString();
+  return sameDay?('today '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})):d.toLocaleDateString([],{month:'short',day:'numeric'});};
+
+/* top-bar back -> root landing (you'll build / later) */
+$('#backBtn').addEventListener('click',()=>{ location.href='/'; });
+
+/* clock */
+function tick(){const d=new Date();
+  $('#clk-day').textContent=d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+  $('#clk-time').textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+tick();setInterval(tick,10000);
+
+/* ubuntu logo + action icons */
+const uLogo=c=>`<svg class="ico" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="${c}"/><g fill="#fff">
+  <circle cx="84" cy="50" r="8"/><circle cx="33" cy="21" r="8"/><circle cx="33" cy="79" r="8"/></g>
+  <g stroke="#fff" stroke-width="4" fill="none"><circle cx="50" cy="50" r="20"/>
+  <line x1="50" y1="50" x2="84" y2="50"/><line x1="50" y1="50" x2="33" y2="21"/><line x1="50" y1="50" x2="33" y2="79"/></g></svg>`;
+const ICON_DOTS='<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>';
+
+/* render */
+function render(){
+  const list=load().sort((a,b)=>b.lastUsed-a.lastUsed);
+  $('#count').textContent=list.length?`${list.length} instance${list.length>1?'s':''}`:'no instances yet';
+  const cards=list.map(it=>`
+    <div class="card${it.running?' on':''}" data-id="${it.id}" data-act="launch" title="Launch ${esc(it.name)}">
+      <button class="kebab" data-act="menu" title="More options">${ICON_DOTS}</button>
+      <div class="thumb">
+        <div class="run"><span class="dot"></span>${it.running?'Running':'Powered off'}</div>
+        <div class="term"><span class="p">root@ubuntu-wasm</span>:<span class="d">~</span># uname -sm<br>Linux x86_64<br><span class="p">root@ubuntu-wasm</span>:<span class="d">~</span># <span class="cur">&nbsp;</span></div>
+        <div class="play"><div class="pbtn"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
+      </div>
+      <div class="meta">${uLogo(it.accent||'#E95420')}
+        <div class="txt">
+          <div class="nm">${esc(it.name)}</div>
+          <div class="sb">Ubuntu 22.04 LTS</div>
+          <div class="sb2">${it.running?'running':(it.persisted?'<span class="saved">saved</span> '+fmt(it.savedAt):'used '+fmt(it.lastUsed))}${it.net===true?' · <span class="neton">online</span>':''}</div>
+        </div>
+      </div>
+    </div>`).join('');
+  $('#grid').innerHTML=cards+`
+    <div class="newcard" data-act="new"><div><div class="plus"><svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg></div><span>New Instance</span></div></div>`;
+}
+
+/* grid actions */
+$('#grid').addEventListener('click',e=>{
+  const t=e.target.closest('[data-act]'); if(!t)return;
+  const act=t.dataset.act;
+  if(act==='new'){ newInstance(); return; }
+  const id=t.closest('.card')?.dataset.id;
+  if(act==='menu'){ e.stopPropagation(); openCardMenu(t,id); return; }
+  if(act==='launch'){ launch(t.dataset.id); }
+});
+
+/* ---------- per-card three-dots menu ---------- */
+const cardmenu=$('#cardmenu'); let menuId=null;
+function openCardMenu(btn,id){
+  if(cardmenu.classList.contains('show')&&menuId===id){ closeCardMenu(); return; }
+  closeCardMenu(); menuId=id; btn.classList.add('open');
+  const r=btn.getBoundingClientRect();
+  cardmenu.style.left=Math.min(Math.max(8,r.right-160),innerWidth-168)+'px';
+  cardmenu.style.top=(r.bottom+6)+'px';
+  cardmenu.classList.add('show');
+}
+function closeCardMenu(){ cardmenu.classList.remove('show'); menuId=null;
+  document.querySelectorAll('.kebab.open').forEach(k=>k.classList.remove('open')); }
+cardmenu.addEventListener('click',e=>{ const mi=e.target.closest('.cmi'); if(!mi)return;
+  const id=menuId,m=mi.dataset.m; closeCardMenu();
+  if(m==='open')launch(id); else if(m==='edit')editInstance(id); else if(m==='reset')resetInstance(id); else if(m==='del')delInstance(id); });
+addEventListener('click',e=>{ if(!cardmenu.contains(e.target)&&!e.target.closest('.kebab')) closeCardMenu(); });
+addEventListener('scroll',closeCardMenu,true);
+addEventListener('resize',closeCardMenu);
+addEventListener('keydown',e=>{ if(e.key==='Escape') closeCardMenu(); });
+$('#newBtn').addEventListener('click',newInstance);
+
+function launch(id){
+  const list=load();const it=list.find(x=>x.id===id);if(!it)return;
+  it.lastUsed=Date.now();it.running=true;save(list);
+  location.href=`${RUNNER}?instance=${encodeURIComponent(id)}&name=${encodeURIComponent(it.name)}&net=${it.net===true?'on':'off'}`;
+}
+
+/* ---------- one generic modal (new / rename / delete) ---------- */
+let selAccent=ACCENTS[0], onOkFn=null;
+const scrim=$('#scrim');
+function closeModal(){ scrim.classList.remove('show'); onOkFn=null; }
+scrim.addEventListener('click',e=>{ if(e.target===scrim) closeModal(); });
+const swatchRow=sel=>`<label style="margin-top:16px">Accent</label>
+  <div class="swatches" id="swatches">${ACCENTS.map(c=>`<div class="sw${c===sel?' sel':''}" style="background:${c}" data-c="${c}"></div>`).join('')}</div>`;
+const netRow=on=>`<div class="netrow"><div class="nl">Networking<small>Let this instance reach the internet</small></div>
+  <label class="switch"><input type="checkbox" id="mNet" ${on?'checked':''}><span class="sl"></span></label></div>`;
+function openModal({title,input=false,value='',accent=ACCENTS[0],net,okLabel='OK',danger=false,body='',onOk}){
+  onOkFn=onOk; selAccent=accent;
+  $('#mTitle').textContent=title;
+  $('#mBody').innerHTML = input
+    ? `<label>Instance name</label><input id="mName" maxlength="40" placeholder="e.g. dev-box" autocomplete="off" value="${esc(value)}">${swatchRow(accent)}${net===undefined?'':netRow(net)}`
+    : `<p class="mtext">${esc(body)}</p>`;
+  $('#mFoot').innerHTML=`<button class="btn" id="mCancel">Cancel</button><button class="btn ${danger?'danger':'primary'}" id="mOk">${esc(okLabel)}</button>`;
+  $('#mCancel').onclick=closeModal;
+  $('#mOk').onclick=()=>{ const v=input?($('#mName').value.trim()||'ubuntu'):null; const nv=$('#mNet')?$('#mNet').checked:undefined; const cb=onOkFn; closeModal(); cb&&cb(v,selAccent,nv); };
+  if(input){
+    const sw=$('#swatches');
+    sw.onclick=e=>{const s=e.target.closest('.sw');if(!s)return;selAccent=s.dataset.c;[...sw.children].forEach(x=>x.classList.toggle('sel',x===s));};
+    $('#mName').addEventListener('keydown',e=>{if(e.key==='Enter')$('#mOk').click();});
+    setTimeout(()=>{$('#mName').focus();$('#mName').select();},30);
+  }
+  scrim.classList.add('show');
+}
+
+function newInstance(){
+  openModal({title:'New Ubuntu instance',input:true,value:'ubuntu-'+(load().length+1),accent:ACCENTS[0],net:false,okLabel:'Create & launch',
+    onOk:(name,accent,net)=>{ const it={id:uid(),name,accent,net:net===true,created:Date.now(),lastUsed:Date.now(),running:false};
+      const l=load(); l.push(it); save(l); launch(it.id); }});
+}
+function editInstance(id){
+  const it=load().find(x=>x.id===id); if(!it)return;
+  openModal({title:'Edit instance',input:true,value:it.name,accent:it.accent||ACCENTS[0],net:it.net===true,okLabel:'Save',
+    onOk:(name,accent,net)=>{ const l=load(); const t=l.find(x=>x.id===id); if(t){ t.name=name; t.accent=accent; t.net=net===true; save(l); render(); } }});
+}
+function delInstance(id){
+  const it=load().find(x=>x.id===id); if(!it)return;
+  const body=it.persisted?'This removes the instance and its saved disk from your browser.':'This removes the instance from your list.';
+  openModal({title:`Delete “${it.name}”?`,body,okLabel:'Delete',danger:true,
+    onOk:()=>{ save(load().filter(x=>x.id!==id)); render(); deleteOPFS(id); }});
+}
+/* Reset to fresh: drop the saved disk so the next launch cold-boots the base image. */
+function resetInstance(id){
+  const it=load().find(x=>x.id===id); if(!it)return;
+  if(!it.persisted){ return; }   // nothing saved yet — already fresh
+  openModal({title:`Reset “${it.name}”?`,body:'Discards this instance’s saved state. The next launch starts from a clean Ubuntu. This can’t be undone.',okLabel:'Reset',danger:true,
+    onOk:()=>{ const l=load(); const t=l.find(x=>x.id===id); if(t){ delete t.persisted; delete t.savedAt; save(l); } render(); deleteOPFS(id); }});
+}
+/* remove a persisted per-instance disk from OPFS (reclaims the space) */
+async function deleteOPFS(id){ try{ const d=await navigator.storage.getDirectory(); await d.removeEntry('inst-'+id+'.qcow2'); }catch(e){} }
+
+/* instances are "running" only within a launch; reset on return, then render */
+(function(){const l=load();let ch=false;l.forEach(x=>{if(x.running){x.running=false;ch=true;}});if(ch)save(l);})();
+render();
+</script>
+</body>
+</html>

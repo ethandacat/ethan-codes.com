@@ -1,0 +1,33 @@
+[Unit]
+Description=Webuntu network relay (leashed c2w-net gvisor proxy)
+Documentation=file:/opt/webuntu/RELAY-DEPLOY.md
+After=network-online.target nftables.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# net-relay.sh needs root: it installs an nftables table and uses setpriv to drop
+# c2w-net itself down to the unprivileged 'netrelay' user. Do NOT set User= here.
+ExecStart=/opt/webuntu/net-relay.sh
+
+# --- tune these to stay comfortably UNDER your provider's egress cap ---
+Environment=LISTEN=127.0.0.1:8888
+Environment=BUDGET_TB=8
+Environment=RATE_MBPS=25
+Environment=C2W_NET=/usr/local/bin/c2w-net
+# Environment=STATE_DIR=/var/lib/net-relay
+
+Restart=on-failure
+RestartSec=5
+# the script's own trap removes the nftables table + stops c2w-net on SIGTERM
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+# light hardening (can't fully sandbox — it needs CAP_NET_ADMIN for nft)
+NoNewPrivileges=false
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/net-relay
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Privacy Policy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{--orange:#E95420;--aubergine:#2C001E;--purple:#77216F;--ink:#2f2a2c;--dim:#6b6169;--line:#ece8ea;
+    --font:'Ubuntu',system-ui,-apple-system,'Segoe UI',sans-serif;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font);color:var(--ink);background:#faf9fa;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .hero{background:radial-gradient(120% 140% at 85% -20%,rgba(233,84,32,.5),transparent 55%),linear-gradient(160deg,#3a0b2c,#2c001e);
+    color:#fff;padding:46px 22px 40px}
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px}
+  .hero .wrap{padding:0}
+  .back{display:inline-flex;align-items:center;gap:6px;color:#f3dcec;text-decoration:none;font-size:13.5px;font-weight:500;
+    padding:6px 12px 6px 9px;border:1px solid rgba(255,255,255,.22);border-radius:20px;margin-bottom:22px}
+  .back:hover{background:rgba(255,255,255,.12)}
+  .back svg{width:14px;height:14px;fill:#f3dcec}
+  h1{font-size:30px;font-weight:700;letter-spacing:.2px}
+  .sub{color:#e7cfe0;margin-top:8px;font-size:14.5px}
+  main{padding:38px 0 70px}
+  .tldr{background:#fff;border:1px solid var(--line);border-left:4px solid var(--orange);border-radius:12px;padding:16px 20px;margin-bottom:34px}
+  .tldr b{color:#43333c}
+  h2{font-size:18px;font-weight:700;margin:30px 0 10px;color:#43333c}
+  h2:first-of-type{margin-top:0}
+  p{margin:10px 0;color:#4a444a}
+  ul{margin:10px 0 10px 4px;padding-left:20px}
+  li{margin:7px 0;color:#4a444a}
+  code{background:#f1edf0;border-radius:5px;padding:.08em .4em;font-family:'Ubuntu Mono',ui-monospace,monospace;font-size:.92em;color:#8a2f6f}
+  a{color:var(--orange);text-decoration:none}a:hover{text-decoration:underline}
+  .note{font-size:13px;color:var(--dim);margin-top:34px;padding-top:18px;border-top:1px solid var(--line)}
+  footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var(--dim);font-size:13px}
+  footer a{color:var(--dim)}
+</style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <a class="back" href="/instances/"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7 1.4-1.4L10.8 12l5.6-5.6z"/></svg>Back to Instances</a>
+      <h1>Privacy Policy</h1>
+      <div class="sub">How this service handles your data. Effective 15 July 2026.</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="tldr">
+      <b>The short version:</b> the entire virtual machine — its CPU, memory, and disk — runs inside your own browser.
+      That computation never reaches our servers. We store nothing about what you do inside the VM. The only time your
+      data leaves your device is if <b>you</b> turn networking on, and even then we relay it without inspecting encrypted
+      traffic and keep no record of its contents.
+    </div>
+
+    <h2>1. Who we are</h2>
+    <p>This service ("the Service") lets you run a Linux virtual machine entirely client-side in your web browser using
+    WebAssembly. It is operated by <b>Webuntu</b> ("we", "us"). Questions:
+    <a href="mailto:hello@eths.dev">hello@eths.dev</a>.</p>
+
+    <h2>2. What runs locally (and never touches us)</h2>
+    <ul>
+      <li><b>The virtual machine.</b> The emulated processor, RAM, and disk all execute in your browser tab. Commands you
+      run, files you create, and programs you install stay on your machine.</li>
+      <li><b>Your instance list.</b> The instances you create are saved in your browser's <code>localStorage</code>. We
+      never receive or store this. Clearing your browser data deletes them permanently.</li>
+    </ul>
+
+    <h2>3. What we serve</h2>
+    <p>To load the VM your browser downloads static files (the operating-system snapshot and the WebAssembly emulator)
+    from our host/CDN. Serving these files involves standard web-server request logs, which may include your IP address,
+    user-agent, timestamp, and the file requested. These logs are used for operating and securing the Service and are
+    retained only as long as needed for that purpose.</p>
+
+    <h2>4. Networking (optional, off unless you enable it)</h2>
+    <p>Browsers cannot open raw network connections, so when you switch networking <b>on</b>, your VM's traffic is
+    tunnelled to a relay we operate, which forwards it to the internet on your behalf. When networking is <b>off</b>
+    (the default for private use), no traffic leaves your device at all.</p>
+    <p>When networking is on:</p>
+    <ul>
+      <li><b>We do not log the contents</b> of your traffic.</li>
+      <li><b>Encrypted (HTTPS/TLS) connections stay end-to-end.</b> The relay tunnels raw packets, so we cannot see inside
+      your encrypted sessions.</li>
+      <li>To route traffic, prevent abuse, and enforce fair-use limits, the relay transiently processes connection
+      <b>metadata</b> — destination address and port, byte counts, and timestamps. This is used operationally and is not
+      sold or used to build a profile of you.</li>
+      <li>The relay only permits common ports (HTTP <code>80</code>, HTTPS <code>443</code>, DNS <code>53</code>) and is
+      rate- and volume-limited to keep it available and non-abusable.</li>
+      <li>Unencrypted (plain <code>http://</code>) traffic is, by nature, visible to any relay in the path — including
+      ours — so avoid sending sensitive data over plain HTTP.</li>
+    </ul>
+
+    <h2>5. Cookies &amp; tracking</h2>
+    <p>The Service does not use advertising or third-party tracking cookies. Any storage we use
+    (<code>localStorage</code>) is functional — it remembers your instances and settings on your device only.</p>
+
+    <h2>6. Third parties</h2>
+    <p>We rely on infrastructure providers for hosting, content delivery, and network egress. They process requests
+    solely to deliver the Service and are bound by their own policies. We do not otherwise share your data.</p>
+
+    <h2>7. Children</h2>
+    <p>The Service is not directed at children under 13, and we do not knowingly collect their data.</p>
+
+    <h2>8. Your choices</h2>
+    <p>Networking is a toggle you control. Your instances live only in your browser and can be deleted at any time by
+    removing them or clearing site data.</p>
+
+    <h2>9. Changes</h2>
+    <p>We may update this policy; material changes will be reflected by the effective date above.</p>
+
+    <p class="note">This document is a good-faith description of how the Service works. It is not legal advice —
+    have a lawyer review it before you rely on it.</p>
+  </main>
+
+  <footer>
+    <a href="/terms/">Terms of Service</a> &nbsp;·&nbsp; <a href="/instances/">Instances</a>
+  </footer>
+</body>
+</html>

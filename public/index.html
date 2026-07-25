@@ -1,49 +1,234 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ubuntu, in the browser</title>
-  <style>
-    :root { color-scheme: dark; }
-    * { box-sizing: border-box; margin: 0; }
-    body {
-      min-height: 100vh; display: grid; place-items: center;
-      font: 15px/1.6 -apple-system, system-ui, sans-serif;
-      background: #1a0e14; color: #eee; text-align: center; padding: 2rem;
-    }
-    .wrap { max-width: 640px; }
-    h1 { font-size: 1.6rem; margin-bottom: .4rem; }
-    .sub { color: #b79; margin-bottom: 2rem; }
-    .card { border: 1px solid #4a2f3a; border-radius: 12px; padding: 1.2rem 1.4rem; background: #241118; text-align: left; }
-    .row { display: flex; justify-content: space-between; gap: 1rem; padding: .4rem 0; border-bottom: 1px solid #3a2029; }
-    .row:last-child { border-bottom: 0; }
-    .k { color: #b79; }
-    .ok { color: #7ee787; font-weight: 600; }
-    .no { color: #ff7b72; font-weight: 600; }
-    code { background: #000; padding: .1rem .4rem; border-radius: 4px; color: #e6a; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Webuntu — Real Ubuntu in your browser</title>
+<meta name="description" content="A real amd64 Ubuntu machine that boots in your browser tab. Nothing to install. Runs locally, private by default." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --orange:#E95420; --orange-d:#c7431a;
+    --aubergine:#2C001E; --purple:#77216F;
+    --ink:#f4ecf1; --dim:#c8b6c4; --dim2:#9a8a96;
+    --card:rgba(255,255,255,.045); --line:rgba(255,255,255,.10);
+    --green:#2ec27e;
+    --font:'Ubuntu',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --mono:'Ubuntu Mono',ui-monospace,'Cascadia Code',Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font); color:var(--ink); min-height:100vh; -webkit-font-smoothing:antialiased;
+    background:
+      radial-gradient(120% 90% at 82% 110%, rgba(233,84,32,.40) 0%, rgba(233,84,32,0) 46%),
+      radial-gradient(90% 80% at 12% -12%, rgba(119,33,111,.60) 0%, rgba(119,33,111,0) 55%),
+      linear-gradient(150deg,#3a0b2c 0%,#2c001e 44%,#1b0412 100%);
+    background-attachment:fixed;
+  }
+  a{color:inherit}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 22px}
+
+  /* faint circle-of-friends watermark */
+  .rings{position:fixed;inset:0;pointer-events:none;opacity:.05;display:grid;place-items:center;z-index:0}
+  .rings svg{width:min(78vw,760px);height:auto}
+
+  /* top nav */
+  nav{position:relative;z-index:2;display:flex;align-items:center;gap:14px;padding:22px 0}
+  nav .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:19px;letter-spacing:.5px}
+  nav .brand .logo{width:30px;height:30px}
+  nav .spacer{margin-left:auto}
+  nav .nlink{font-size:14px;color:var(--dim);text-decoration:none;padding:7px 11px;border-radius:8px}
+  nav .nlink:hover{color:#fff;background:rgba(255,255,255,.07)}
+
+  /* hero */
+  header{position:relative;z-index:1;text-align:center;padding:44px 0 26px}
+  .badge{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:500;color:var(--dim);
+    background:var(--card);border:1px solid var(--line);padding:6px 13px;border-radius:20px;margin-bottom:22px}
+  .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+  h1{font-size:clamp(38px,7vw,68px);line-height:1.03;font-weight:700;letter-spacing:-.5px}
+  h1 .accent{color:var(--orange)}
+  .sub{max-width:620px;margin:20px auto 0;font-size:clamp(16px,2.3vw,19px);line-height:1.55;color:var(--dim)}
+  .cta{display:flex;gap:13px;justify-content:center;flex-wrap:wrap;margin-top:34px}
+  .btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--font);font-weight:500;font-size:16px;
+    padding:14px 26px;border-radius:11px;text-decoration:none;cursor:pointer;border:1px solid transparent;transition:.14s}
+  .btn.primary{background:var(--orange);color:#fff;box-shadow:0 10px 30px rgba(233,84,32,.35)}
+  .btn.primary:hover{background:var(--orange-d);transform:translateY(-1px)}
+  .btn.ghost{background:rgba(255,255,255,.06);border-color:var(--line);color:#fff}
+  .btn.ghost:hover{background:rgba(255,255,255,.12)}
+  .btn svg{width:18px;height:18px;fill:currentColor}
+  .note{margin-top:16px;font-size:13px;color:var(--dim2)}
+
+  /* terminal mock */
+  .demo{position:relative;z-index:1;margin:44px auto 0;max-width:760px;border-radius:14px;overflow:hidden;
+    border:1px solid var(--line);box-shadow:0 30px 80px rgba(0,0,0,.5);background:rgba(40,8,30,.72);backdrop-filter:blur(6px)}
+  .demo .bar{display:flex;align-items:center;gap:7px;padding:11px 14px;background:linear-gradient(#3a0b2c,#320826);border-bottom:1px solid var(--line)}
+  .demo .bar i{width:11px;height:11px;border-radius:50%;background:#5e2750;display:block}
+  .demo .bar i:nth-child(1){background:#E95420}.demo .bar i:nth-child(2){background:#d98e04}.demo .bar i:nth-child(3){background:#2ec27e}
+  .demo .bar span{margin-left:8px;font-size:12px;color:var(--dim2)}
+  .demo pre{margin:0;padding:20px 22px;font-family:var(--mono);font-size:13.5px;line-height:1.65;color:#e6e2df;overflow-x:auto}
+  .demo .p{color:#8ae234}.demo .d{color:#c9a0dc}.demo .c{color:#8a8a8a}
+  .demo .cur{display:inline-block;width:8px;height:16px;background:#e6e2df;vertical-align:-3px;animation:blink 1.1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  /* features */
+  .features{position:relative;z-index:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:66px 0 20px}
+  .feat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .feat .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:rgba(233,84,32,.14);margin-bottom:14px}
+  .feat .ic svg{width:20px;height:20px;fill:var(--orange)}
+  .feat h3{font-size:16px;font-weight:700;margin-bottom:7px}
+  .feat p{font-size:14px;line-height:1.55;color:var(--dim)}
+
+  .section-h{text-align:center;margin:56px 0 6px;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--dim2)}
+
+  /* how it works */
+  .steps{position:relative;z-index:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:20px 0}
+  .step{display:flex;gap:14px;align-items:flex-start;padding:6px}
+  .step .n{flex:none;width:30px;height:30px;border-radius:50%;background:var(--orange);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px}
+  .step h4{font-size:15px;font-weight:700;margin-bottom:4px}
+  .step p{font-size:13.5px;line-height:1.5;color:var(--dim)}
+
+  /* bottom cta */
+  .final{position:relative;z-index:1;text-align:center;margin:70px auto 0;max-width:620px;
+    background:linear-gradient(150deg,rgba(119,33,111,.30),rgba(233,84,32,.16));border:1px solid var(--line);
+    border-radius:18px;padding:44px 26px}
+  .final h2{font-size:clamp(24px,4vw,34px);font-weight:700}
+  .final p{margin:12px auto 26px;color:var(--dim);max-width:440px;line-height:1.55}
+
+  footer{position:relative;z-index:1;text-align:center;padding:44px 0 40px;color:var(--dim2);font-size:13px}
+  footer a{color:var(--dim2);text-decoration:none;margin:0 4px}
+  footer a:hover{color:var(--orange);text-decoration:underline}
+  footer .sep{opacity:.5;margin:0 6px}
+
+  /* --- Patreon / support --- */
+  nav .nlink.support{color:#fff;background:#FF424D;font-weight:500}
+  nav .nlink.support:hover{background:#e23b45;color:#fff}
+  .btn.patreon{background:#FF424D;color:#fff;box-shadow:0 10px 30px rgba(255,66,77,.38)}
+  .btn.patreon:hover{background:#e23b45;transform:translateY(-1px)}
+  .support-cta{position:relative;z-index:1;text-align:center;margin:64px auto 0;max-width:640px;
+    background:var(--card);border:1px solid rgba(255,66,77,.25);border-radius:18px;padding:40px 26px}
+  .support-cta .heart{font-size:32px;line-height:1}
+  .support-cta h2{font-size:clamp(21px,4vw,29px);font-weight:700;margin:12px 0 8px}
+  .support-cta p{color:var(--dim);max-width:470px;margin:0 auto 24px;line-height:1.55}
+  footer .patreon-link{color:#FF424D;font-weight:500}
+  footer .patreon-link:hover{color:#e23b45}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Ubuntu 22.04 — in the browser</h1>
-    <p class="sub">Foundation online. Booting the VM is the next phase.</p>
-    <div class="card" id="checks"></div>
+  <div class="rings" aria-hidden="true">
+    <svg viewBox="0 0 200 200"><g fill="none" stroke="#fff" stroke-width="7"><circle cx="100" cy="100" r="74"/></g>
+      <g fill="#fff"><circle cx="176" cy="100" r="15"/><circle cx="62" cy="34" r="15"/><circle cx="62" cy="166" r="15"/></g>
+      <g stroke="#fff" stroke-width="7"><line x1="100" y1="100" x2="176" y2="100"/><line x1="100" y1="100" x2="62" y2="34"/><line x1="100" y1="100" x2="62" y2="166"/></g></svg>
   </div>
-  <script>
-    const rows = [
-      ['Cross-origin isolated', crossOriginIsolated],
-      ['SharedArrayBuffer', typeof SharedArrayBuffer !== 'undefined'],
-      ['WebAssembly', typeof WebAssembly !== 'undefined'],
-      ['WebAssembly.Module (JIT target)', typeof WebAssembly?.Module === 'function'],
-      ['Hardware threads', navigator.hardwareConcurrency || '?'],
-    ];
-    document.getElementById('checks').innerHTML = rows.map(([k, v]) => {
-      const good = v === true || (typeof v === 'number' && v > 0);
-      const cls = v === true ? 'ok' : v === false ? 'no' : '';
-      const val = v === true ? '✓ yes' : v === false ? '✗ no' : v;
-      return `<div class="row"><span class="k">${k}</span><span class="${cls}">${val}</span></div>`;
-    }).join('');
-  </script>
+
+  <div class="wrap">
+    <nav>
+      <span class="brand">
+        <svg class="logo" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#E95420"/><g fill="#fff">
+          <circle cx="84" cy="50" r="8"/><circle cx="33" cy="21" r="8"/><circle cx="33" cy="79" r="8"/></g>
+          <g stroke="#fff" stroke-width="4" fill="none"><circle cx="50" cy="50" r="20"/>
+          <line x1="50" y1="50" x2="84" y2="50"/><line x1="50" y1="50" x2="33" y2="21"/><line x1="50" y1="50" x2="33" y2="79"/></g></svg>
+        Webuntu
+      </span>
+      <span class="spacer"></span>
+      <a class="nlink" href="#how">How it works</a>
+      <a class="nlink" href="/privacy/">Privacy</a>
+      <a class="nlink support" href="https://www.patreon.com/c/ethandacat" target="_blank" rel="noopener">♥ Support</a>
+      <a class="nlink" href="/instances/">Launch</a>
+    </nav>
+
+    <header>
+      <span class="badge"><span class="dot"></span>Real amd64 Ubuntu 22.04 · runs in your tab</span>
+      <h1>A whole <span class="accent">Ubuntu</span> machine,<br>in a browser tab.</h1>
+      <p class="sub">Not a mock terminal — a real x86-64 Linux kernel and userspace, emulated with WebAssembly and restored from a pre-booted snapshot. Nothing to install, nothing to sign up for.</p>
+      <div class="cta">
+        <a class="btn primary" href="/instances/">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Launch Ubuntu
+        </a>
+        <a class="btn ghost" href="#how">See how it works</a>
+      </div>
+      <div class="note">Boots in seconds · runs on your machine · networking is off until you turn it on</div>
+    </header>
+
+    <div class="demo" aria-hidden="true">
+      <div class="bar"><i></i><i></i><i></i><span>root@ubuntu-wasm: ~</span></div>
+<pre><span class="p">root@ubuntu-wasm</span>:<span class="d">~</span># uname -sm
+Linux x86_64
+<span class="p">root@ubuntu-wasm</span>:<span class="d">~</span># cat /etc/os-release | head -1
+PRETTY_NAME="Ubuntu 22.04 LTS"
+<span class="p">root@ubuntu-wasm</span>:<span class="d">~</span># <span class="c"># it's the real thing.</span>
+<span class="p">root@ubuntu-wasm</span>:<span class="d">~</span># <span class="cur"></span></pre>
+    </div>
+
+    <section class="features">
+      <div class="feat">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7z"/></svg></div>
+        <h3>Instant boot</h3>
+        <p>Starts from a snapshot of an already-booted system, so you land at a live shell in seconds — not a cold boot.</p>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H4zM2 18h20v2H2zm7-9l3 3 3-4"/></svg></div>
+        <h3>Actually Linux</h3>
+        <p>A genuine kernel and Ubuntu userspace. <code style="font-family:var(--mono)">apt</code>, bash, Python, real filesystem — do Linux things, for real.</p>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 1l9 4v6c0 5-3.8 9.7-9 11-5.2-1.3-9-6-9-11V5z"/></svg></div>
+        <h3>Private by default</h3>
+        <p>Everything runs in your browser. Networking stays off until you flip it on — nothing leaves your machine unless you say so.</p>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5zM7 5v5h8V5zm5 7a3 3 0 100 6 3 3 0 000-6z"/></svg></div>
+        <h3>Saves your work</h3>
+        <p>Give an instance a name and it keeps its whole disk between visits — installed packages and files come back exactly as you left them.</p>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3C7 3 2.7 5 0 8l2 2c2.3-2.3 6-4 10-4s7.7 1.7 10 4l2-2C21.3 5 17 3 12 3zm0 8c-1.4 0-2.7.5-3.6 1.4L12 16l3.6-3.6C14.7 11.5 13.4 11 12 11z"/></svg></div>
+        <h3>Optional networking</h3>
+        <p>Turn on real internet per instance — DNS, TCP, HTTPS — when you need to fetch or install something. Off by default, one toggle away.</p>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 4h16v14H4zM2 20h20v2H2zM8 8h8v2H8zm0 4h5v2H8z"/></svg></div>
+        <h3>Many instances</h3>
+        <p>Spin up as many little machines as you like — a scratchpad, a project box, something to break — each independent, each yours.</p>
+      </div>
+    </section>
+
+    <div class="section-h" id="how">How it works</div>
+    <section class="steps">
+      <div class="step"><div class="n">1</div><div><h4>Open a tab</h4><p>The emulator and a pre-booted Ubuntu snapshot stream in and start restoring immediately.</p></div></div>
+      <div class="step"><div class="n">2</div><div><h4>Land at a shell</h4><p>Seconds later you're at a live <span style="font-family:var(--mono)">root@ubuntu-wasm</span> prompt — a real Linux session.</p></div></div>
+      <div class="step"><div class="n">3</div><div><h4>Do your thing</h4><p>Run commands, edit files, optionally go online. Name the instance and it all persists for next time.</p></div></div>
+    </section>
+
+    <section class="final">
+      <h2>Ready when you are.</h2>
+      <p>No account, no download, no VM to configure. Just a real Ubuntu machine, one click away.</p>
+      <a class="btn primary" href="/instances/">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Launch Ubuntu
+      </a>
+    </section>
+
+    <section class="support-cta">
+      <div class="heart">💜</div>
+      <h2>Webuntu is free — and staying free.</h2>
+      <p>No ads, no account, no upsell. If it saved you a VM setup — or just made you grin — back it on Patreon and keep the machines humming.</p>
+      <a class="btn patreon" href="https://www.patreon.com/c/ethandacat" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-10-9.3C.3 8.4 1.7 5 5 5c2 0 3.2 1.1 4 2.3C9.8 6.1 11 5 13 5c3.3 0 4.7 3.4 3 6.7C19.5 16.4 12 21 12 21z"/></svg>
+        Support on Patreon
+      </a>
+    </section>
+
+    <footer>
+      <div>Everything runs in your browser.</div>
+      <div style="margin-top:8px">
+        <a href="/instances/">Instances</a><span class="sep">·</span>
+        <a href="/privacy/">Privacy</a><span class="sep">·</span>
+        <a href="/terms/">Terms</a><span class="sep">·</span>
+        <a class="patreon-link" href="https://www.patreon.com/c/ethandacat" target="_blank" rel="noopener">♥ Patreon</a>
+      </div>
+    </footer>
+  </div>
 </body>
 </html>

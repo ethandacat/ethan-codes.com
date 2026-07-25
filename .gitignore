@@ -1,12 +1,20 @@
 node_modules/
 dist/
 vendor/
-# Generated VM bundles (large: wasm + rootfs) — track only our hand-written boot pages
+*.log
+.DS_Store
+
+# VM build artifacts — multi-GB intermediates (rootfs.raw, clean qcow2s, etc.), never deployed
+vm-artifacts/
+
+# Old SDL / graphical experiments — keep only the boot page
 public/vm/*
 !public/vm/index.html
 public/vm-sdl/*
 !public/vm-sdl/index.html
-public/vm-fb/*
-!public/vm-fb/index.html
-*.log
-.DS_Store
+
+# vm-fb: the live app. Track the code + small/medium assets (wasm, kernel, initrd, data).
+# The pre-booted snapshot is 345 MB — too big for git (GitHub caps files at 100 MB), so it
+# ships as a GitHub Release asset and is fetched at deploy time (see deploy/setup-webuntu.sh).
+public/vm-fb/*.qcow2
+public/vm-fb/*.qcow2.gz

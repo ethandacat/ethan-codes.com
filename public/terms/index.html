@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Terms of Service</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{--orange:#E95420;--aubergine:#2C001E;--purple:#77216F;--ink:#2f2a2c;--dim:#6b6169;--line:#ece8ea;
+    --font:'Ubuntu',system-ui,-apple-system,'Segoe UI',sans-serif;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font);color:var(--ink);background:#faf9fa;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .hero{background:radial-gradient(120% 140% at 85% -20%,rgba(233,84,32,.5),transparent 55%),linear-gradient(160deg,#3a0b2c,#2c001e);
+    color:#fff;padding:46px 22px 40px}
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px}
+  .hero .wrap{padding:0}
+  .back{display:inline-flex;align-items:center;gap:6px;color:#f3dcec;text-decoration:none;font-size:13.5px;font-weight:500;
+    padding:6px 12px 6px 9px;border:1px solid rgba(255,255,255,.22);border-radius:20px;margin-bottom:22px}
+  .back:hover{background:rgba(255,255,255,.12)}
+  .back svg{width:14px;height:14px;fill:#f3dcec}
+  h1{font-size:30px;font-weight:700;letter-spacing:.2px}
+  .sub{color:#e7cfe0;margin-top:8px;font-size:14.5px}
+  main{padding:38px 0 70px}
+  .tldr{background:#fff;border:1px solid var(--line);border-left:4px solid var(--orange);border-radius:12px;padding:16px 20px;margin-bottom:34px}
+  .tldr b{color:#43333c}
+  h2{font-size:18px;font-weight:700;margin:30px 0 10px;color:#43333c}
+  h2:first-of-type{margin-top:0}
+  p{margin:10px 0;color:#4a444a}
+  ul{margin:10px 0 10px 4px;padding-left:20px}
+  li{margin:7px 0;color:#4a444a}
+  code{background:#f1edf0;border-radius:5px;padding:.08em .4em;font-family:'Ubuntu Mono',ui-monospace,monospace;font-size:.92em;color:#8a2f6f}
+  a{color:var(--orange);text-decoration:none}a:hover{text-decoration:underline}
+  .note{font-size:13px;color:var(--dim);margin-top:34px;padding-top:18px;border-top:1px solid var(--line)}
+  footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var(--dim);font-size:13px}
+  footer a{color:var(--dim)}
+</style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <a class="back" href="/instances/"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7 1.4-1.4L10.8 12l5.6-5.6z"/></svg>Back to Instances</a>
+      <h1>Terms of Service</h1>
+      <div class="sub">The rules for using this service. Effective 15 July 2026.</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="tldr">
+      <b>The short version:</b> this is an experimental service provided as-is. The VM runs in your browser, so you're
+      responsible for what you run in it. If you turn networking on, don't abuse the shared relay — no illegal activity,
+      attacks, spam, or bandwidth hogging — or we'll rate-limit or cut you off.
+    </div>
+
+    <h2>1. Acceptance</h2>
+    <p>By using this service ("the Service") you agree to these Terms and to our
+    <a href="/privacy/">Privacy Policy</a>. If you do not agree, do not use the Service.</p>
+
+    <h2>2. What the Service is</h2>
+    <p>The Service runs a Linux virtual machine client-side in your browser via WebAssembly, with optional outbound
+    networking through a relay we operate. It is provided for experimentation and general use. It is <b>not</b> intended
+    for production workloads, for storing important or sensitive data, or as a reliable or always-available system.</p>
+
+    <h2>3. Your data lives in your browser</h2>
+    <p>Instances and their contents are stored locally in your browser and are ephemeral. Clearing your browser data,
+    switching devices, or a reset of the base image will erase them. We are not responsible for any loss of data you
+    create in the VM — keep your own copies of anything you care about.</p>
+
+    <h2>4. Acceptable use</h2>
+    <p>When using networking through our relay, you must not:</p>
+    <ul>
+      <li>break any applicable law, or infringe others' rights;</li>
+      <li>launch attacks, port-scanning, denial-of-service, intrusion attempts, or send spam;</li>
+      <li>use the relay as a general-purpose proxy/VPN to disguise traffic, evade bans, or circumvent access controls;</li>
+      <li>mine cryptocurrency, run bots, or generate abusive, excessive, or automated load;</li>
+      <li>consume bandwidth beyond fair use (the relay is volume- and rate-limited and restricted to common ports).</li>
+    </ul>
+    <p>You are responsible for everything done through your session. We may rate-limit, suspend, or block access — and,
+    where networking egress is exhausted or abused, disable networking — at our discretion and without notice.</p>
+
+    <h2>5. Availability</h2>
+    <p>The Service, and networking in particular, may be slow, interrupted, rate-limited, or unavailable at any time.
+    Networking may be paused when shared usage limits are reached. We provide no uptime guarantee.</p>
+
+    <h2>6. No warranty</h2>
+    <p>The Service is provided <b>"as is" and "as available," without warranties of any kind</b>, express or implied,
+    including merchantability, fitness for a particular purpose, and non-infringement. We do not warrant that it will be
+    secure, error-free, or uninterrupted.</p>
+
+    <h2>7. Limitation of liability</h2>
+    <p>To the maximum extent permitted by law, we are not liable for any indirect, incidental, special, consequential, or
+    punitive damages, or for any loss of data, profits, or goodwill, arising from your use of the Service. Our total
+    liability shall not exceed the amount you paid us (if any) in the preceding twelve months.</p>
+
+    <h2>8. Indemnity</h2>
+    <p>You agree to indemnify and hold us harmless from claims arising out of your use of the Service or your violation
+    of these Terms, including any activity you route through the relay.</p>
+
+    <h2>9. Changes &amp; termination</h2>
+    <p>We may modify the Service or these Terms at any time; continued use after changes constitutes acceptance. We may
+    suspend or terminate access at any time.</p>
+
+    <h2>10. Governing law</h2>
+    <p>These Terms are governed by the laws of the <b>State of Hawaii, United States</b>, without regard to conflict-of-laws rules.
+    Contact: <a href="mailto:hello@eths.dev">hello@eths.dev</a>.</p>
+
+    <p class="note">This document is a good-faith description of how the Service works. It is not legal advice —
+    have a lawyer review it before you rely on it.</p>
+  </main>
+
+  <footer>
+    <a href="/privacy/">Privacy Policy</a> &nbsp;·&nbsp; <a href="/instances/">Instances</a>
+  </footer>
+</body>
+</html>

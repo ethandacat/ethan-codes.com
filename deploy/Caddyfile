@@ -1,0 +1,36 @@
+# Webuntu relay — TLS terminator for the WebSocket relay.
+#
+# c2w-net speaks *plain* WebSocket on 127.0.0.1:8888. A browser page served over
+# HTTPS cannot open a ws:// socket (mixed content), so the relay MUST be reached
+# over wss://. Caddy provisions a Let's Encrypt cert automatically and upgrades the
+# WebSocket transparently — no c2w-net changes needed.
+#
+# Prereqs: point relay.example.com's DNS A/AAAA record at this box, open 80+443.
+# Run:     caddy run --config /etc/caddy/Caddyfile   (or: systemctl start caddy)
+
+relay.example.com {
+	# TLS is automatic (ACME). Force it.
+	encode zstd gzip
+
+	# Only the WebSocket upgrade is a real endpoint; everything else 404s so the
+	# relay isn't mistaken for a web server / scanned as one.
+	@ws header Connection *Upgrade*
+	reverse_proxy @ws 127.0.0.1:8888
+
+	respond "Webuntu relay" 200
+}
+
+# --- nginx equivalent, if you prefer nginx over Caddy -------------------------
+# server {
+#     listen 443 ssl http2;
+#     server_name relay.example.com;
+#     ssl_certificate     /etc/letsencrypt/live/relay.example.com/fullchain.pem;
+#     ssl_certificate_key /etc/letsencrypt/live/relay.example.com/privkey.pem;
+#     location / {
+#         proxy_pass http://127.0.0.1:8888;
+#         proxy_http_version 1.1;
+#         proxy_set_header Upgrade $http_upgrade;
+#         proxy_set_header Connection "upgrade";
+#         proxy_read_timeout 1h;   # keep long-lived VM sockets alive
+#     }
+# }
